@@ -85,7 +85,7 @@ Track completion using checkboxes below. Run `npm run milestones` to print progr
 ### M1 — Ignored Discovery
 - [x] Single-root discovery via Git CLI returns list
 - [x] Graceful errors when not a Git repo
-- [ ] Unit tests for Git output parser
+- [x] Unit tests for Git output parser
 
 ### M2 — Tree View UI
 - [x] TreeDataProvider with folder grouping

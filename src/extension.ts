@@ -1,9 +1,6 @@
 import * as vscode from 'vscode';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
 import { join } from 'node:path';
-
-const execFileAsync = promisify(execFile);
+import { listIgnoredFiles } from './git';
 
 export function activate(context: vscode.ExtensionContext) {
   const provider = new IgnoredTreeDataProvider();
@@ -24,6 +21,10 @@ class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem
 
   refresh(): void {
     this._onDidChangeTreeData.fire();
+  }
+
+  getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
+    return element;
   }
 
   async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
@@ -97,27 +98,12 @@ class FileItem extends vscode.TreeItem {
   }
 }
 
-async function listIgnoredFiles(cwd: string): Promise<string[]> {
-  // Use git CLI for accurate results, zero-delimited to avoid parsing issues
-  const args = ['ls-files', '--others', '-i', '--exclude-standard', '-z'];
-  try {
-    const { stdout } = await execFileAsync('git', args, { cwd, maxBuffer: 10 * 1024 * 1024 });
-    const parts = stdout.split('\u0000').filter(Boolean);
-    return parts.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
-  } catch (e: any) {
-    if (typeof e?.stderr === 'string' && e.stderr.includes('fatal')) {
-      throw new Error('Not a Git repository or Git unavailable');
-    }
-    throw e;
-  }
-}
 
 async function openFile(item: FileItem) {
-  const doc = await vscode.workspace.openTextDocument(item.resourceUri);
+  const doc = await vscode.workspace.openTextDocument(item.resourceUri!);
   await vscode.window.showTextDocument(doc, { preview: true });
 }
 
 async function revealFile(item: FileItem) {
-  await vscode.commands.executeCommand('revealInExplorer', item.resourceUri);
+  await vscode.commands.executeCommand('revealInExplorer', item.resourceUri!);
 }
-
