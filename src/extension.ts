@@ -22,6 +22,13 @@ export function activate(context: vscode.ExtensionContext) {
       }
       await revealFile(item);
     }),
+    vscode.commands.registerCommand('show-ignored.copyPath', async (item?: FileItem) => {
+      if (!item) {
+        vscode.window.showInformationMessage('Select a file from the Ignored Files view.');
+        return;
+      }
+      await copyPath(item);
+    }),
     vscode.commands.registerCommand('show-ignored.delete', async (item?: FileItem) => {
       if (!(await ensureTrustedForWrite())) return;
       if (!item) {
@@ -162,6 +169,12 @@ async function openFile(item: FileItem) {
 
 async function revealFile(item: FileItem) {
   await vscode.commands.executeCommand('revealInExplorer', item.resourceUri!);
+}
+
+async function copyPath(item: FileItem) {
+  const fsPath = item.resourceUri!.fsPath;
+  await vscode.env.clipboard.writeText(fsPath);
+  vscode.window.showInformationMessage('Path copied to clipboard');
 }
 
 async function ensureTrustedForWrite(): Promise<boolean> {

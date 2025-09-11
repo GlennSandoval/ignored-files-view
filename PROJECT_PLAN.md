@@ -93,7 +93,7 @@ Track completion using checkboxes below. Run `npm run milestones` to print progr
 - [x] Smoke tests for the view
 
 ### M3 — Actions
-- [ ] Open, Reveal, Copy Path actions
+- [x] Open, Reveal, Copy Path actions
 - [ ] Delete with confirmation
 - [ ] Unignore (append pattern) + reload
 - [ ] Tests for unignore logic
