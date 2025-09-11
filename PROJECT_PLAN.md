@@ -94,7 +94,7 @@ Track completion using checkboxes below. Run `npm run milestones` to print progr
 
 ### M3 — Actions
 - [x] Open, Reveal, Copy Path actions
-- [ ] Delete with confirmation
+- [x] Delete with confirmation
 - [ ] Unignore (append pattern) + reload
 - [ ] Tests for unignore logic
 

@@ -17,6 +17,7 @@
     "onCommand:show-ignored.open",
     "onCommand:show-ignored.reveal",
     "onCommand:show-ignored.copyPath",
+    "onCommand:show-ignored.delete",
     "workspaceContains:.git"
   ],
   "main": "./out/extension.js",
@@ -54,6 +55,12 @@
           "command": "show-ignored.copyPath",
           "when": "view == ignoredFilesView && viewItem == file",
           "group": "inline@3"
+        },
+        {
+          "command": "show-ignored.delete",
+          "when": "view == ignoredFilesView && viewItem == file",
+          "group": "inline@4",
+          "icon": "$(trash)"
         }
       ]
     },
@@ -76,7 +83,7 @@
       },
       {
         "command": "show-ignored.delete",
-        "title": "Ignored Files: Delete (stub)"
+        "title": "Ignored Files: Delete"
       },
       {
         "command": "show-ignored.unignore",

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { join } from 'node:path';
+import { join, basename } from 'node:path';
 import { listIgnoredFiles } from './git';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -35,7 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.showInformationMessage('Select a file from the Ignored Files view.');
         return;
       }
-      vscode.window.showInformationMessage('Delete action is not implemented yet.');
+      await deleteFile(item, provider);
     }),
     vscode.commands.registerCommand('show-ignored.unignore', async (item?: FileItem) => {
       if (!(await ensureTrustedForWrite())) return;
@@ -216,4 +216,22 @@ function buildChildrenForDir(
     .map((rel) => new FileItem(folder, rel));
 
   return [...dirItems, ...fileItems];
+}
+async function deleteFile(item: FileItem, provider: IgnoredTreeDataProvider) {
+  const name = basename(item.resourceUri!.fsPath);
+  const choice = await vscode.window.showWarningMessage(
+    `Delete '${name}'? This moves the file to the OS trash.`,
+    { modal: true },
+    'Delete'
+  );
+  if (choice !== 'Delete') return;
+
+  try {
+    await vscode.workspace.fs.delete(item.resourceUri!, { useTrash: true, recursive: false });
+    vscode.window.showInformationMessage(`Deleted '${name}'`);
+    provider.refresh();
+  } catch (err: any) {
+    const msg = typeof err?.message === 'string' ? err.message : String(err);
+    vscode.window.showErrorMessage(`Failed to delete '${name}': ${msg}`);
+  }
 }
