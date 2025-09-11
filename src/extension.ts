@@ -8,8 +8,20 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider('ignoredFilesView', provider),
     vscode.commands.registerCommand('show-ignored.refresh', () => provider.refresh()),
-    vscode.commands.registerCommand('show-ignored.open', (item: FileItem) => openFile(item)),
-    vscode.commands.registerCommand('show-ignored.reveal', (item: FileItem) => revealFile(item)),
+    vscode.commands.registerCommand('show-ignored.open', async (item?: FileItem) => {
+      if (!item) {
+        vscode.window.showInformationMessage('Select a file from the Ignored Files view.');
+        return;
+      }
+      await openFile(item);
+    }),
+    vscode.commands.registerCommand('show-ignored.reveal', async (item?: FileItem) => {
+      if (!item) {
+        vscode.window.showInformationMessage('Select a file from the Ignored Files view.');
+        return;
+      }
+      await revealFile(item);
+    }),
     vscode.commands.registerCommand('show-ignored.delete', async (item?: FileItem) => {
       if (!(await ensureTrustedForWrite())) return;
       if (!item) {
