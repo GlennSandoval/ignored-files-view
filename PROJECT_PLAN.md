@@ -73,3 +73,41 @@ Provide a fast, reliable tree view in Visual Studio Code that lists all files ig
 - Time to first list < 500ms on typical repos.
 - No blocking UI; low memory footprint.
 - Positive user feedback; minimal error reports.
+
+## Milestone Tracker
+Track completion using checkboxes below. Run `npm run milestones` to print progress per milestone and overall.
+
+### M0 — Scaffold & CI
+- [x] TypeScript project scaffolded
+- [x] Build configured (tsc/bundler)
+- [ ] CI workflow for build/lint/test
+
+### M1 — Ignored Discovery
+- [x] Single-root discovery via Git CLI returns list
+- [x] Graceful errors when not a Git repo
+- [ ] Unit tests for Git output parser
+
+### M2 — Tree View UI
+- [x] TreeDataProvider with folder grouping
+- [ ] Refresh button and empty states
+- [ ] Smoke tests for the view
+
+### M3 — Actions
+- [ ] Open, Reveal, Copy Path actions
+- [ ] Delete with confirmation
+- [ ] Unignore (append pattern) + reload
+- [ ] Tests for unignore logic
+
+### M4 — Multi-root & Trust
+- [x] Multi-root workspace support
+- [ ] Workspace trust gating for write actions
+
+### M5 — Performance & Polish
+- [ ] Caching of results
+- [ ] Debounced refresh and cancellation
+- [ ] Result caps; telemetry off by default
+
+### M6 — Docs & Release
+- [ ] README and command/setting docs
+- [ ] Icons and changelog
+- [ ] `vsce` packaging ready

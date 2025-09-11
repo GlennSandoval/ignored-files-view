@@ -22,6 +22,10 @@ A Visual Studio Code extension that provides a tree view listing all files ignor
 - `npm run watch` to compile TypeScript
 - Press F5 in VS Code to launch an Extension Development Host
 
+## Milestone Tracking
+- Update milestone checkboxes in `PROJECT_PLAN.md` under `## Milestone Tracker`.
+- View progress via `npm run milestones`.
+
 ## Notes
 - Discovery uses `git ls-files --others -i --exclude-standard -z`.
 - If the workspace is untrusted, listing is disabled.

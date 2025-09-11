@@ -48,7 +48,8 @@
     "build": "npm run compile",
     "lint": "echo 'add eslint later'",
     "format": "echo 'add prettier later'",
-    "package": "vsce package || echo 'Install vsce to package'"
+    "package": "vsce package || echo 'Install vsce to package'",
+    "milestones": "node scripts/calc-milestones.js"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
@@ -56,4 +57,3 @@
     "typescript": "^5.5.0"
   }
 }
-
