@@ -80,7 +80,7 @@ Track completion using checkboxes below. Run `npm run milestones` to print progr
 ### M0 — Scaffold & CI
 - [x] TypeScript project scaffolded
 - [x] Build configured (tsc/bundler)
-- [ ] CI workflow for build/lint/test
+- [x] CI workflow for build/lint/test
 
 ### M1 — Ignored Discovery
 - [x] Single-root discovery via Git CLI returns list

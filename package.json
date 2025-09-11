@@ -49,6 +49,7 @@
     "lint": "echo 'add eslint later'",
     "format": "echo 'add prettier later'",
     "package": "vsce package || echo 'Install vsce to package'",
+    "test": "echo 'no tests yet'",
     "milestones": "node scripts/calc-milestones.js"
   },
   "devDependencies": {
