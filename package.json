@@ -27,6 +27,16 @@
         }
       ]
     },
+    "menus": {
+      "view/title": [
+        {
+          "command": "show-ignored.refresh",
+          "when": "view == ignoredFilesView",
+          "group": "navigation",
+          "icon": "$(refresh)"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "show-ignored.refresh",

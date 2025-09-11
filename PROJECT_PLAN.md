@@ -89,7 +89,7 @@ Track completion using checkboxes below. Run `npm run milestones` to print progr
 
 ### M2 — Tree View UI
 - [x] TreeDataProvider with folder grouping
-- [ ] Refresh button and empty states
+- [x] Refresh button and empty states
 - [ ] Smoke tests for the view
 
 ### M3 — Actions
