@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { join, basename } from 'node:path';
-import { listIgnoredFiles } from './git';
+import { listIgnoredFiles, clearIgnoredListCache } from './git';
 
 export function activate(context: vscode.ExtensionContext) {
   const provider = new IgnoredTreeDataProvider();
@@ -57,6 +57,7 @@ class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem
 
   refresh(): void {
     this.cache.clear();
+    clearIgnoredListCache();
     this._onDidChangeTreeData.fire();
   }
 

@@ -103,7 +103,7 @@ Track completion using checkboxes below. Run `npm run milestones` to print progr
 - [x] Workspace trust gating for write actions
 
 ### M5 — Performance & Polish
-- [ ] Caching of results
+- [x] Caching of results
 - [ ] Debounced refresh and cancellation
 - [ ] Result caps; telemetry off by default
 
