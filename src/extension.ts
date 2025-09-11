@@ -9,7 +9,23 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.registerTreeDataProvider('ignoredFilesView', provider),
     vscode.commands.registerCommand('show-ignored.refresh', () => provider.refresh()),
     vscode.commands.registerCommand('show-ignored.open', (item: FileItem) => openFile(item)),
-    vscode.commands.registerCommand('show-ignored.reveal', (item: FileItem) => revealFile(item))
+    vscode.commands.registerCommand('show-ignored.reveal', (item: FileItem) => revealFile(item)),
+    vscode.commands.registerCommand('show-ignored.delete', async (item?: FileItem) => {
+      if (!(await ensureTrustedForWrite())) return;
+      if (!item) {
+        vscode.window.showInformationMessage('Select a file from the Ignored Files view.');
+        return;
+      }
+      vscode.window.showInformationMessage('Delete action is not implemented yet.');
+    }),
+    vscode.commands.registerCommand('show-ignored.unignore', async (item?: FileItem) => {
+      if (!(await ensureTrustedForWrite())) return;
+      if (!item) {
+        vscode.window.showInformationMessage('Select a file from the Ignored Files view.');
+        return;
+      }
+      vscode.window.showInformationMessage('Unignore action is not implemented yet.');
+    })
   );
 }
 
@@ -106,4 +122,13 @@ async function openFile(item: FileItem) {
 
 async function revealFile(item: FileItem) {
   await vscode.commands.executeCommand('revealInExplorer', item.resourceUri!);
+}
+
+async function ensureTrustedForWrite(): Promise<boolean> {
+  const trustEnabled = vscode.workspace.getConfiguration('security').get<boolean>('workspace.trust.enabled');
+  if (trustEnabled && vscode.workspace.isTrusted === false) {
+    vscode.window.showWarningMessage('This action is disabled in untrusted workspaces.');
+    return false;
+  }
+  return true;
 }

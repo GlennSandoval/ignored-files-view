@@ -39,6 +39,14 @@
       {
         "command": "show-ignored.reveal",
         "title": "Ignored Files: Reveal in Explorer"
+      },
+      {
+        "command": "show-ignored.delete",
+        "title": "Ignored Files: Delete (stub)"
+      },
+      {
+        "command": "show-ignored.unignore",
+        "title": "Ignored Files: Unignore (stub)"
       }
     ]
   },

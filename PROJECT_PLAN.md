@@ -100,7 +100,7 @@ Track completion using checkboxes below. Run `npm run milestones` to print progr
 
 ### M4 — Multi-root & Trust
 - [x] Multi-root workspace support
-- [ ] Workspace trust gating for write actions
+- [x] Workspace trust gating for write actions
 
 ### M5 — Performance & Polish
 - [ ] Caching of results
