@@ -1,0 +1,11 @@
+.vscode/**
+.github/**
+src/**
+**/*.map
+**/*.ts
+node_modules/**/test/**
+node_modules/**/docs/**
+node_modules/**/examples/**
+AGENTS.md
+PROJECT_PLAN.md
+

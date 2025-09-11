@@ -1,0 +1,59 @@
+{
+  "name": "show-ignored-files",
+  "displayName": "Show Ignored Files",
+  "description": "A VS Code extension that shows all files ignored by Git in a dedicated tree view.",
+  "version": "0.0.1",
+  "publisher": "your-name",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.84.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:ignoredFilesView",
+    "onCommand:show-ignored.refresh",
+    "workspaceContains:.git"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "id": "ignoredFilesView",
+          "name": "Ignored Files",
+          "contextualTitle": "Ignored Files"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "show-ignored.refresh",
+        "title": "Ignored Files: Refresh"
+      },
+      {
+        "command": "show-ignored.open",
+        "title": "Ignored Files: Open"
+      },
+      {
+        "command": "show-ignored.reveal",
+        "title": "Ignored Files: Reveal in Explorer"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -w -p .",
+    "build": "npm run compile",
+    "lint": "echo 'add eslint later'",
+    "format": "echo 'add prettier later'",
+    "package": "vsce package || echo 'Install vsce to package'"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.84.0",
+    "typescript": "^5.5.0"
+  }
+}
+
