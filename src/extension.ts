@@ -46,8 +46,10 @@ export function deactivate() {}
 class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined | void>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+  private cache = new Map<string, string[]>();
 
   refresh(): void {
+    this.cache.clear();
     this._onDidChangeTreeData.fire();
   }
 
@@ -68,7 +70,7 @@ class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem
 
     if (!element) {
       if (folders.length === 1) {
-        // Show files directly for single-root workspaces
+        // Single-root: show directory tree for that folder
         return this.getFilesForFolder(folders[0]);
       }
       // Multi-root: show root headers
@@ -79,20 +81,37 @@ class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem
       return this.getFilesForFolder(element.folder);
     }
 
+    if (element instanceof DirectoryItem) {
+      return this.getChildrenForDirectory(element.folder, element.dirPath);
+    }
+
     return [];
   }
 
   async getFilesForFolder(folder: vscode.WorkspaceFolder): Promise<vscode.TreeItem[]> {
     try {
-      const files = await listIgnoredFiles(folder.uri.fsPath);
+      const files = await this.getOrScan(folder);
       if (!files.length) {
         return [new MessageItem('No ignored files')];
       }
-      return files.map((rel) => new FileItem(folder, rel));
+      return buildChildrenForDir(folder, files);
     } catch (err: any) {
       const msg = typeof err?.message === 'string' ? err.message : String(err);
       return [new MessageItem(msg)];
     }
+  }
+
+  private async getOrScan(folder: vscode.WorkspaceFolder): Promise<string[]> {
+    const key = folder.uri.fsPath;
+    if (this.cache.has(key)) return this.cache.get(key)!;
+    const files = await listIgnoredFiles(key);
+    this.cache.set(key, files);
+    return files;
+  }
+
+  private async getChildrenForDirectory(folder: vscode.WorkspaceFolder, dirPath: string): Promise<vscode.TreeItem[]> {
+    const files = await this.getOrScan(folder);
+    return buildChildrenForDir(folder, files, dirPath);
   }
 }
 
@@ -112,9 +131,18 @@ class FolderItem extends vscode.TreeItem {
   }
 }
 
+class DirectoryItem extends vscode.TreeItem {
+  constructor(public readonly folder: vscode.WorkspaceFolder, public readonly dirPath: string) {
+    super(dirPath.split(/[\\/]/).pop() || dirPath, vscode.TreeItemCollapsibleState.Collapsed);
+    this.contextValue = 'dir';
+    this.resourceUri = vscode.Uri.file(join(folder.uri.fsPath, dirPath));
+    this.iconPath = vscode.ThemeIcon.Folder;
+  }
+}
+
 class FileItem extends vscode.TreeItem {
   constructor(public readonly folder: vscode.WorkspaceFolder, public readonly relativePath: string) {
-    super(relativePath, vscode.TreeItemCollapsibleState.None);
+    super(relativePath.split(/[\\/]/).pop() || relativePath, vscode.TreeItemCollapsibleState.None);
     this.contextValue = 'file';
     this.resourceUri = vscode.Uri.file(join(folder.uri.fsPath, relativePath));
     this.command = {
@@ -143,4 +171,36 @@ async function ensureTrustedForWrite(): Promise<boolean> {
     return false;
   }
   return true;
+}
+
+function buildChildrenForDir(
+  folder: vscode.WorkspaceFolder,
+  allFiles: string[],
+  dirPath?: string
+): vscode.TreeItem[] {
+  const prefix = dirPath ? dirPath.replace(/[\\/]+$/, '') + '/' : '';
+  const subdirs = new Set<string>();
+  const files: string[] = [];
+
+  for (const rel of allFiles) {
+    if (!rel.startsWith(prefix)) continue;
+    const rest = rel.slice(prefix.length);
+    if (!rest) continue;
+    const idx = rest.indexOf('/');
+    if (idx === -1) {
+      files.push(rel); // file directly under this directory
+    } else {
+      subdirs.add(rest.slice(0, idx));
+    }
+  }
+
+  const dirItems = Array.from(subdirs)
+    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+    .map((name) => new DirectoryItem(folder, prefix + name));
+
+  const fileItems = files
+    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+    .map((rel) => new FileItem(folder, rel));
+
+  return [...dirItems, ...fileItems];
 }
