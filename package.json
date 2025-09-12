@@ -22,6 +22,17 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "Ignored Files",
+      "properties": {
+        "ignored.maxItems": {
+          "type": "number",
+          "default": 2000,
+          "minimum": 100,
+          "markdownDescription": "Maximum number of ignored files to collect and display. Capping protects performance and memory on very large repositories. Increase with care."
+        }
+      }
+    },
     "views": {
       "explorer": [
         {

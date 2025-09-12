@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { join, basename } from 'node:path';
-import { listIgnoredFiles, clearIgnoredListCache } from './git';
+import { listIgnoredFiles, clearIgnoredListCache, type ListResult } from './git';
 
 export function activate(context: vscode.ExtensionContext) {
   const provider = new IgnoredTreeDataProvider();
@@ -53,7 +53,7 @@ export function deactivate() {}
 class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined | void>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
-  private cache = new Map<string, string[]>();
+  private cache = new Map<string, ListResult>();
   private controllers = new Map<string, AbortController>();
   private refreshTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -111,18 +111,26 @@ class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem
 
   async getFilesForFolder(folder: vscode.WorkspaceFolder): Promise<vscode.TreeItem[]> {
     try {
-      const files = await this.getOrScan(folder);
-      if (!files.length) {
+      const result = await this.getOrScan(folder);
+      if (!result.files.length) {
         return [new MessageItem('No ignored files')];
       }
-      return buildChildrenForDir(folder, files);
+      const maxItems = getMaxItems();
+      const items = buildChildrenForDir(folder, result.files);
+      if (result.truncated) {
+        const note = new MessageItem(
+          `Showing first ${maxItems} ignored files (capped by setting ignored.maxItems)`
+        );
+        return [note, ...items];
+      }
+      return items;
     } catch (err: any) {
       const msg = typeof err?.message === 'string' ? err.message : String(err);
       return [new MessageItem(msg)];
     }
   }
 
-  private async getOrScan(folder: vscode.WorkspaceFolder): Promise<string[]> {
+  private async getOrScan(folder: vscode.WorkspaceFolder): Promise<ListResult> {
     const key = folder.uri.fsPath;
     if (this.cache.has(key)) return this.cache.get(key)!;
     // Abort any prior scan for this folder and start a new one
@@ -133,20 +141,21 @@ class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem
     const controller = new AbortController();
     this.controllers.set(key, controller);
 
-    const files = await listIgnoredFiles(key, controller.signal);
+    const maxItems = getMaxItems();
+    const result = await listIgnoredFiles(key, maxItems, controller.signal);
     // If a newer controller was created, ignore storing results
     const current = this.controllers.get(key);
     if (current !== controller) {
-      return this.cache.get(key) ?? files;
+      return this.cache.get(key) ?? result;
     }
     this.controllers.delete(key);
-    this.cache.set(key, files);
-    return files;
+    this.cache.set(key, result);
+    return result;
   }
 
   private async getChildrenForDirectory(folder: vscode.WorkspaceFolder, dirPath: string): Promise<vscode.TreeItem[]> {
-    const files = await this.getOrScan(folder);
-    return buildChildrenForDir(folder, files, dirPath);
+    const result = await this.getOrScan(folder);
+    return buildChildrenForDir(folder, result.files, dirPath);
   }
 }
 
@@ -212,6 +221,15 @@ async function ensureTrustedForWrite(): Promise<boolean> {
     return false;
   }
   return true;
+}
+
+function getMaxItems(): number {
+  const cfg = vscode.workspace.getConfiguration('ignored');
+  let n = cfg.get<number>('maxItems', 2000);
+  // Clamp to sane bounds
+  if (!Number.isFinite(n) || n <= 0) n = 2000;
+  if (n > 20000) n = 20000;
+  return Math.floor(n);
 }
 
 function buildChildrenForDir(
