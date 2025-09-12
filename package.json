@@ -12,12 +12,6 @@
     "Other"
   ],
   "activationEvents": [
-    "onView:ignoredFilesView",
-    "onCommand:show-ignored.refresh",
-    "onCommand:show-ignored.open",
-    "onCommand:show-ignored.reveal",
-    "onCommand:show-ignored.copyPath",
-    "onCommand:show-ignored.delete",
     "workspaceContains:.git"
   ],
   "main": "./dist/extension.js",
