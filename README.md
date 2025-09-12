@@ -42,7 +42,7 @@ A Visual Studio Code extension that provides a tree view listing all files ignor
 ## Development
 
 - `npm install` – Install dependencies.
-- `npm run watch` – Compile TypeScript in watch mode to `out/`.
+- `npm run dev` – Build with Vite in watch mode to `dist/`.
 - Run/Debug: Press F5 in VS Code to start an Extension Development Host.
 - Tests: `npm test` (builds then runs unit and smoke tests).
 - Package: `npm run package` (requires `vsce` installed globally).
@@ -52,3 +52,4 @@ A Visual Studio Code extension that provides a tree view listing all files ignor
 - Discovery uses `git ls-files --others -i --exclude-standard -z` under the workspace folder(s).
 - If the workspace is untrusted and Workspace Trust is enabled, listing and write actions are disabled.
 - Delete moves files to the OS trash (no permanent deletes).
+ - Built with Vite; extension entry is bundled to `dist/extension.js`.

@@ -5,7 +5,7 @@ const os = require('os');
 const cp = require('child_process');
 const assert = require('assert');
 
-const git = require(path.join(process.cwd(), 'out', 'git.js'));
+const git = require(path.join(process.cwd(), 'dist', 'git.js'));
 
 // Simple test runner that supports sync and async tests
 const tests = [];

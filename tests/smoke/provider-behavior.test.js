@@ -74,7 +74,7 @@ function withMocks(run) {
   const origLoad = Module._load;
   Module._load = function (request, parent, isMain) {
     if (request === 'vscode') return vscode;
-    if (request === './git') return gitStub;
+    if (request === './git' || request === './git.js') return gitStub;
     return origLoad.apply(this, arguments);
   };
 
@@ -91,7 +91,7 @@ function assertLabelSeq(items, expected) {
 }
 
 withMocks(({ registered, vscode, config, gitStub }) => {
-  const ext = require(path.join(process.cwd(), 'out', 'extension.js'));
+  const ext = require(path.join(process.cwd(), 'dist', 'extension.js'));
   ext.activate({ subscriptions: [] });
   const provider = registered.providers['ignoredFilesView'];
 

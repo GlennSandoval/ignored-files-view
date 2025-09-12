@@ -20,7 +20,7 @@
     "onCommand:show-ignored.delete",
     "workspaceContains:.git"
   ],
-  "main": "./out/extension.js",
+  "main": "./dist/extension.js",
   "contributes": {
     "configuration": {
       "title": "Ignored Files",
@@ -103,9 +103,8 @@
     ]
   },
   "scripts": {
-    "compile": "tsc -p .",
-    "watch": "tsc -w -p .",
-    "build": "npm run compile",
+    "dev": "vite build --watch",
+    "build": "vite build",
     "lint": "echo 'add eslint later'",
     "format": "echo 'add prettier later'",
     "package": "vsce package || echo 'Install vsce to package'",
@@ -117,6 +116,7 @@
   "devDependencies": {
     "@types/node": "^20.11.0",
     "@types/vscode": "^1.84.0",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0"
   }
 }

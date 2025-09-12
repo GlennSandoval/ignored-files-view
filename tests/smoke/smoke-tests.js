@@ -75,7 +75,7 @@ function assert(cond, msg) { if (!cond) throw new Error(msg || 'Assertion failed
 
 // Run smoke tests
 withVscodeMock(({ registered }) => {
-  const ext = require(path.join(process.cwd(), 'out', 'extension.js'));
+  const ext = require(path.join(process.cwd(), 'dist', 'extension.js'));
   assert(typeof ext.activate === 'function', 'activate should be exported');
   ext.activate({ subscriptions: [] });
 
