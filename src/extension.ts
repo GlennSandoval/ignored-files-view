@@ -15,27 +15,27 @@ export function activate(context: vscode.ExtensionContext) {
       }
       await openFile(item);
     }),
-    vscode.commands.registerCommand('show-ignored.reveal', async (item?: FileItem) => {
+    vscode.commands.registerCommand('show-ignored.reveal', async (item?: FileOrDirItem) => {
       if (!item) {
         vscode.window.showInformationMessage('Select a file from the Ignored Files view.');
         return;
       }
       await revealFile(item);
     }),
-    vscode.commands.registerCommand('show-ignored.copyPath', async (item?: FileItem) => {
+    vscode.commands.registerCommand('show-ignored.copyPath', async (item?: FileOrDirItem) => {
       if (!item) {
         vscode.window.showInformationMessage('Select a file from the Ignored Files view.');
         return;
       }
       await copyPath(item);
     }),
-    vscode.commands.registerCommand('show-ignored.delete', async (item?: FileItem) => {
+    vscode.commands.registerCommand('show-ignored.delete', async (item?: FileOrDirItem) => {
       if (!(await ensureTrustedForWrite())) return;
       if (!item) {
         vscode.window.showInformationMessage('Select a file from the Ignored Files view.');
         return;
       }
-      await deleteFile(item, provider);
+      await deleteResource(item, provider);
     }),
     vscode.commands.registerCommand('show-ignored.unignore', async (item?: FileItem) => {
       if (!(await ensureTrustedForWrite())) return;
@@ -198,17 +198,19 @@ class FileItem extends vscode.TreeItem {
   }
 }
 
+type FileOrDirItem = FileItem | DirectoryItem | FolderItem;
+
 
 async function openFile(item: FileItem) {
   const doc = await vscode.workspace.openTextDocument(item.resourceUri!);
   await vscode.window.showTextDocument(doc, { preview: true });
 }
 
-async function revealFile(item: FileItem) {
+async function revealFile(item: FileOrDirItem) {
   await vscode.commands.executeCommand('revealInExplorer', item.resourceUri!);
 }
 
-async function copyPath(item: FileItem) {
+async function copyPath(item: FileOrDirItem) {
   const fsPath = item.resourceUri!.fsPath;
   await vscode.env.clipboard.writeText(fsPath);
   vscode.window.showInformationMessage('Path copied to clipboard');
@@ -263,17 +265,17 @@ function buildChildrenForDir(
 
   return [...dirItems, ...fileItems];
 }
-async function deleteFile(item: FileItem, provider: IgnoredTreeDataProvider) {
+async function deleteResource(item: FileOrDirItem, provider: IgnoredTreeDataProvider) {
   const name = basename(item.resourceUri!.fsPath);
   const choice = await vscode.window.showWarningMessage(
-    `Delete '${name}'? This moves the file to the OS trash.`,
+    `Delete '${name}'? This moves the ${item instanceof DirectoryItem ? 'folder' : 'file'} to the OS trash.`,
     { modal: true },
     'Delete'
   );
   if (choice !== 'Delete') return;
 
   try {
-    await vscode.workspace.fs.delete(item.resourceUri!, { useTrash: true, recursive: false });
+    await vscode.workspace.fs.delete(item.resourceUri!, { useTrash: true, recursive: item instanceof DirectoryItem });
     vscode.window.showInformationMessage(`Deleted '${name}'`);
     provider.refresh();
   } catch (err: any) {

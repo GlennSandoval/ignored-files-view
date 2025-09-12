@@ -16,6 +16,12 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "submenus": [
+      {
+        "id": "show-ignored.actions",
+        "label": "Ignored Actions"
+      }
+    ],
     "configuration": {
       "title": "Ignored Files",
       "properties": {
@@ -53,19 +59,31 @@
           "group": "inline@1"
         },
         {
-          "command": "show-ignored.reveal",
+          "submenu": "show-ignored.actions",
+          "when": "view == ignoredFilesView && (viewItem == file || viewItem == dir || viewItem == folder)",
+          "group": "navigation@99"
+        }
+      ],
+      "show-ignored.actions": [
+        {
+          "command": "show-ignored.open",
           "when": "view == ignoredFilesView && viewItem == file",
-          "group": "inline@2"
+          "group": "1_open"
+        },
+        {
+          "command": "show-ignored.reveal",
+          "when": "view == ignoredFilesView && (viewItem == file || viewItem == dir || viewItem == folder)",
+          "group": "2_navigate"
         },
         {
           "command": "show-ignored.copyPath",
-          "when": "view == ignoredFilesView && viewItem == file",
-          "group": "inline@3"
+          "when": "view == ignoredFilesView && (viewItem == file || viewItem == dir || viewItem == folder)",
+          "group": "3_clipboard"
         },
         {
           "command": "show-ignored.delete",
-          "when": "view == ignoredFilesView && viewItem == file",
-          "group": "inline@4",
+          "when": "view == ignoredFilesView && (viewItem == file || viewItem == dir)",
+          "group": "4_modify",
           "icon": "$(trash)"
         }
       ]
