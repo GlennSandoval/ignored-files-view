@@ -3,12 +3,9 @@
   "tasks": [
     {
       "type": "npm",
-      "script": "watch",
-      "problemMatcher": "$tsc-watch",
-      "isBackground": true,
+      "script": "dev",
       "group": "build",
-      "label": "npm: watch"
+      "label": "npm: dev"
     }
   ]
 }
-

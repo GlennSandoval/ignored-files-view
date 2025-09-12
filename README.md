@@ -43,7 +43,7 @@ A Visual Studio Code extension that provides a tree view listing all files ignor
 
 - `npm install` – Install dependencies.
 - `npm run dev` – Build with Vite in watch mode to `dist/`.
-- Run/Debug: Press F5 in VS Code to start an Extension Development Host.
+- Run/Debug: Press F5 in VS Code to start an Extension Development Host. The pre-launch task performs a one-off `npm run build`. For hot rebuilds, keep `npm run dev` running in a terminal.
 - Tests: `npm test` (builds then runs unit and smoke tests).
 - Package: `npm run package` (requires `vsce` installed globally).
 

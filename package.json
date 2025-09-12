@@ -104,8 +104,9 @@
   },
   "scripts": {
     "dev": "vite build --watch",
+    "watch": "npm run dev",
     "build": "vite build",
-    "lint": "echo 'add eslint later'",
+    "lint": "tsc -p tsconfig.json --noEmit",
     "format": "echo 'add prettier later'",
     "package": "vsce package || echo 'Install vsce to package'",
     "test:unit": "vitest run",
