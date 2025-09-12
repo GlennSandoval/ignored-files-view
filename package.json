@@ -32,7 +32,8 @@
         {
           "id": "ignoredFilesView",
           "name": "Ignored Files",
-          "contextualTitle": "Ignored Files"
+          "contextualTitle": "Ignored Files",
+          "icon": "$(folder-ignored)"
         }
       ]
     },
