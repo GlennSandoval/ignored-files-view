@@ -202,8 +202,23 @@ type FileOrDirItem = FileItem | DirectoryItem | FolderItem;
 
 
 async function openFile(item: FileItem) {
-  const doc = await vscode.workspace.openTextDocument(item.resourceUri!);
-  await vscode.window.showTextDocument(doc, { preview: true });
+  try {
+    // Use the generic open command so VS Code picks the right editor
+    // (text editor, image viewer, custom editors, etc.).
+    await vscode.commands.executeCommand('vscode.open', item.resourceUri!, { preview: true });
+  } catch (err: any) {
+    const msg = typeof err?.message === 'string' ? err.message : String(err);
+    const choice = await vscode.window.showErrorMessage(
+      `Cannot open this file in VS Code: ${msg}`,
+      'Open Externally',
+      'Reveal in Explorer'
+    );
+    if (choice === 'Open Externally') {
+      await vscode.env.openExternal(item.resourceUri!);
+    } else if (choice === 'Reveal in Explorer') {
+      await vscode.commands.executeCommand('revealInExplorer', item.resourceUri!);
+    }
+  }
 }
 
 async function revealFile(item: FileOrDirItem) {
