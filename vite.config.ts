@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import { builtinModules } from 'module';
 import { resolve } from 'node:path';
 
