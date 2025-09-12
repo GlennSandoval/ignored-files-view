@@ -43,9 +43,13 @@ A Visual Studio Code extension that provides a tree view listing all files ignor
 
 - `npm install` – Install dependencies.
 - `npm run dev` – Build with Vite in watch mode to `dist/`.
+- Lint: `npm run lint` (Biome) and `npm run typecheck` (TypeScript no-emit).
+- Format: `npm run format` (Biome, writes changes).
 - Run/Debug: Press F5 in VS Code to start an Extension Development Host. The pre-launch task performs a one-off `npm run build`. For hot rebuilds, keep `npm run dev` running in a terminal.
 - Tests: `npm test` (builds then runs unit and smoke tests).
 - Package: `npm run package` (requires `vsce` installed globally).
+
+This repo uses Biome for linting and formatting. See `biome.json` for configuration. VS Code users get formatter defaults via `.vscode/settings.json`; the Biome extension (`biomejs.biome`) is recommended.
 
 ## Notes
 

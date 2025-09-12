@@ -24,7 +24,7 @@ Assumed Node.js workflow; adapt as needed.
 - Indentation: 2 spaces; UTF‑8; LF line endings.
 - Naming: `camelCase` for variables/functions, `PascalCase` for classes/types, `kebab-case` for file names (`show-ignored.ts`).
 - Exports: prefer named exports; avoid default unless warranted.
-- Lint/format: ESLint + Prettier. Ensure a clean `npm run lint` before pushing.
+- Lint/format: Biome. Run `npm run lint` and `npm run format` before pushing; use `npm run typecheck` for TS types.
 
 ## Testing Guidelines
 - Framework: Jest or Vitest.
@@ -45,4 +45,3 @@ Assumed Node.js workflow; adapt as needed.
 
 ## Agent‑Specific Instructions
 When editing or adding files, follow these conventions and keep changes minimal and focused on the task at hand. If project tooling differs from the Node/TypeScript defaults above, update this file and package scripts accordingly.
-
