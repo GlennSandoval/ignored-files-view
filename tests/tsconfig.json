@@ -1,12 +1,9 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "types": ["vitest/globals"],
-    "noEmit": true
+    "types": ["vitest/globals", "node"],
+    "noEmit": true,
+    "rootDir": "."
   },
-  "include": [
-    "./**/*.ts",
-    "./**/*.js"
-  ]
+  "include": ["./**/*.ts", "./**/*.js"]
 }
-
