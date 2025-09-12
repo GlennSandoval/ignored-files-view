@@ -51,7 +51,7 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {}
 
 class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
-  private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined | void>();
+  private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   private cache = new Map<string, ListResult>();
   private controllers = new Map<string, AbortController>();
@@ -124,15 +124,15 @@ class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem
         return [note, ...items];
       }
       return items;
-    } catch (err: any) {
-      const msg = typeof err?.message === 'string' ? err.message : String(err);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
       return [new MessageItem(msg)];
     }
   }
 
   private async getOrScan(folder: vscode.WorkspaceFolder): Promise<ListResult> {
     const key = folder.uri.fsPath;
-    if (this.cache.has(key)) return this.cache.get(key)!;
+    if (this.cache.has(key)) return this.cache.get(key) as ListResult;
     // Abort any prior scan for this folder and start a new one
     const prev = this.controllers.get(key);
     if (prev) {
@@ -205,30 +205,40 @@ async function openFile(item: FileItem) {
   try {
     // Use the generic open command so VS Code picks the right editor
     // (text editor, image viewer, custom editors, etc.).
-    await vscode.commands.executeCommand('vscode.open', item.resourceUri!, { preview: true });
-  } catch (err: any) {
-    const msg = typeof err?.message === 'string' ? err.message : String(err);
+    const uri = item.resourceUri;
+    if (!uri) {
+      vscode.window.showWarningMessage('This item has no resource to open.');
+      return;
+    }
+    await vscode.commands.executeCommand('vscode.open', uri, { preview: true });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
     const choice = await vscode.window.showErrorMessage(
       `Cannot open this file in VS Code: ${msg}`,
       'Open Externally',
       'Reveal in Explorer'
     );
     if (choice === 'Open Externally') {
-      await vscode.env.openExternal(item.resourceUri!);
+      const uri = item.resourceUri;
+      if (uri) await vscode.env.openExternal(uri);
     } else if (choice === 'Reveal in Explorer') {
-      await vscode.commands.executeCommand('revealInExplorer', item.resourceUri!);
+      const uri = item.resourceUri;
+      if (uri) await vscode.commands.executeCommand('revealInExplorer', uri);
     }
   }
 }
 
 async function revealFile(item: FileOrDirItem) {
-  await vscode.commands.executeCommand('revealInExplorer', item.resourceUri!);
+  if (!item.resourceUri) return;
+  await vscode.commands.executeCommand('revealInExplorer', item.resourceUri);
 }
 
 async function copyPath(item: FileOrDirItem) {
-  const fsPath = item.resourceUri!.fsPath;
-  await vscode.env.clipboard.writeText(fsPath);
-  vscode.window.showInformationMessage('Path copied to clipboard');
+  const fsPath = item.resourceUri?.fsPath;
+  if (fsPath) {
+    await vscode.env.clipboard.writeText(fsPath);
+    vscode.window.showInformationMessage('Path copied to clipboard');
+  }
 }
 
 async function ensureTrustedForWrite(): Promise<boolean> {
@@ -254,7 +264,7 @@ function buildChildrenForDir(
   allFiles: string[],
   dirPath?: string
 ): vscode.TreeItem[] {
-  const prefix = dirPath ? dirPath.replace(/[\\/]+$/, '') + '/' : '';
+  const prefix = dirPath ? `${dirPath.replace(/[\\/]+$/, '')}/` : '';
   const subdirs = new Set<string>();
   const files: string[] = [];
 
@@ -281,7 +291,9 @@ function buildChildrenForDir(
   return [...dirItems, ...fileItems];
 }
 async function deleteResource(item: FileOrDirItem, provider: IgnoredTreeDataProvider) {
-  const name = basename(item.resourceUri!.fsPath);
+  const uri = item.resourceUri;
+  if (!uri) return;
+  const name = basename(uri.fsPath);
   const choice = await vscode.window.showWarningMessage(
     `Delete '${name}'? This moves the ${item instanceof DirectoryItem ? 'folder' : 'file'} to the OS trash.`,
     { modal: true },
@@ -290,11 +302,11 @@ async function deleteResource(item: FileOrDirItem, provider: IgnoredTreeDataProv
   if (choice !== 'Delete') return;
 
   try {
-    await vscode.workspace.fs.delete(item.resourceUri!, { useTrash: true, recursive: item instanceof DirectoryItem });
+    await vscode.workspace.fs.delete(uri, { useTrash: true, recursive: item instanceof DirectoryItem });
     vscode.window.showInformationMessage(`Deleted '${name}'`);
     provider.refresh();
-  } catch (err: any) {
-    const msg = typeof err?.message === 'string' ? err.message : String(err);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
     vscode.window.showErrorMessage(`Failed to delete '${name}': ${msg}`);
   }
 }

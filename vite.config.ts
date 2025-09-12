@@ -1,5 +1,5 @@
 import { defineConfig } from 'vitest/config';
-import { builtinModules } from 'module';
+import { builtinModules } from 'node:module';
 import { resolve } from 'node:path';
 
 // Build the VS Code extension with Vite/Rollup.

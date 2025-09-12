@@ -38,7 +38,7 @@ export async function listIgnoredFiles(
   const key = `${cwd}::${maxItems}`;
   const now = Date.now();
   const existing = CACHE.get(key);
-  if (existing && existing.value && existing.expires > now) {
+  if (existing?.value && existing.expires > now) {
     return existing.value;
   }
   if (existing?.inflight) return existing.inflight;
@@ -73,7 +73,7 @@ export async function listIgnoredFiles(
       buf = buf.slice(start);
     };
 
-    const onError = (e: any) => {
+    const onError = (e: unknown) => {
       cleanup();
       reject(e);
     };
@@ -96,8 +96,8 @@ export async function listIgnoredFiles(
     };
 
     const cleanup = () => {
-      child.stdout?.off('data', onData as any);
-      child.stderr?.off('data', onStderr as any);
+      child.stdout?.off('data', onData);
+      child.stderr?.off('data', onStderr);
       child.off('error', onError);
       child.off('close', onClose);
       if (signal) signal.removeEventListener('abort', onAbort);
@@ -121,7 +121,7 @@ export async function listIgnoredFiles(
     };
 
     if (signal) {
-      if ((signal as any).aborted) return onAbort();
+      if (signal.aborted) return onAbort();
       signal.addEventListener('abort', onAbort, { once: true });
     }
 
@@ -130,19 +130,20 @@ export async function listIgnoredFiles(
     child.on('error', onError);
     child.on('close', onClose);
   })
-    .catch((e: any) => {
+    .catch((e: unknown) => {
       // Map common fatal errors
-      if (typeof e?.message === 'string' && e.message.includes('Not a Git repository')) {
+      const err = e as { message?: unknown; stderr?: unknown };
+      if (typeof err.message === 'string' && err.message.includes('Not a Git repository')) {
         throw e;
       }
-      if (typeof e?.stderr === 'string' && e.stderr.includes('fatal')) {
+      if (typeof err.stderr === 'string' && err.stderr.includes('fatal')) {
         throw new Error('Not a Git repository or Git unavailable');
       }
       throw e;
     })
     .finally(() => {
       const entry = CACHE.get(key);
-      if (entry) delete entry.inflight;
+      if (entry) entry.inflight = undefined;
     });
 
   CACHE.set(key, { expires: now + CACHE_TTL_MS, inflight: p });

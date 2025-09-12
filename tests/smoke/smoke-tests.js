@@ -1,5 +1,5 @@
 // Smoke tests for the Ignored Files view using a lightweight VS Code API mock
-const path = require('path');
+const path = require('node:path');
 
 function createVscodeMock() {
   // Minimal EventEmitter
@@ -18,9 +18,7 @@ function createVscodeMock() {
 
   const TreeItemCollapsibleState = { None: 0, Collapsed: 1, Expanded: 2 };
 
-  class Uri {
-    static file(fp) { return { fsPath: fp, scheme: 'file', path: fp }; }
-  }
+  const Uri = { file(fp) { return { fsPath: fp, scheme: 'file', path: fp }; } };
 
   class ThemeIcon { constructor(id) { this.id = id; } static File = new ThemeIcon('file'); static Folder = new ThemeIcon('folder'); }
 
@@ -58,11 +56,12 @@ function createVscodeMock() {
 
 function withVscodeMock(run) {
   const { vscode, registered } = createVscodeMock();
-  const Module = require('module');
+  const Module = require('node:module');
   const origLoad = Module._load;
-  Module._load = function (request, parent, isMain) {
+  Module._load = function (...args) {
+    const [request] = args;
     if (request === 'vscode') return vscode;
-    return origLoad.apply(this, arguments);
+    return origLoad.apply(this, args);
   };
   try {
     return run({ vscode, registered });
@@ -80,7 +79,7 @@ withVscodeMock(({ registered }) => {
   ext.activate({ subscriptions: [] });
 
   // Provider registered
-  const provider = registered.providers['ignoredFilesView'];
+  const provider = registered.providers.ignoredFilesView;
   assert(provider, 'TreeDataProvider should be registered for ignoredFilesView');
   assert(typeof provider.getChildren === 'function', 'provider.getChildren exists');
 
@@ -100,7 +99,7 @@ withVscodeMock(({ registered }) => {
   return Promise.resolve(provider.getChildren()).then((items) => {
     assert(Array.isArray(items), 'getChildren should return an array');
     assert(items.length === 1, 'one message item expected for empty workspace');
-    const label = items[0] && items[0].label;
+    const label = items[0]?.label;
     assert(typeof label === 'string' && label.length > 0, 'message item has label');
     console.log('✓ smoke: provider and commands registered; empty workspace message shown');
   });

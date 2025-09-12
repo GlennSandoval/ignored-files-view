@@ -1,6 +1,6 @@
 // Additional smoke tests focusing on provider tree building and config handling
-const path = require('path');
-const assert = require('assert');
+const path = require('node:path');
+const assert = require('node:assert');
 
 function withMocks(run) {
   // Minimal EventEmitter compatible with extension expectations
@@ -18,7 +18,7 @@ function withMocks(run) {
   }
 
   const TreeItemCollapsibleState = { None: 0, Collapsed: 1, Expanded: 2 };
-  class Uri { static file(fp) { return { fsPath: fp, scheme: 'file', path: fp }; } }
+  const Uri = { file(fp) { return { fsPath: fp, scheme: 'file', path: fp }; } };
   class ThemeIcon { constructor(id) { this.id = id; } static File = new ThemeIcon('file'); static Folder = new ThemeIcon('folder'); }
 
   const config = { ignoredMaxItems: 2000, trustEnabled: true };
@@ -70,12 +70,13 @@ function withMocks(run) {
     clearIgnoredListCache: () => {},
   };
 
-  const Module = require('module');
+  const Module = require('node:module');
   const origLoad = Module._load;
-  Module._load = function (request, parent, isMain) {
+  Module._load = function (...args) {
+    const [request] = args;
     if (request === 'vscode') return vscode;
     if (request === './git' || request === './git.js') return gitStub;
-    return origLoad.apply(this, arguments);
+    return origLoad.apply(this, args);
   };
 
   try {
@@ -93,7 +94,7 @@ function assertLabelSeq(items, expected) {
 withMocks(({ registered, vscode, config, gitStub }) => {
   const ext = require(path.join(process.cwd(), 'dist', 'extension.js'));
   ext.activate({ subscriptions: [] });
-  const provider = registered.providers['ignoredFilesView'];
+  const provider = registered.providers.ignoredFilesView;
 
   // Setup single-root workspace
   const root = { name: 'root', uri: { fsPath: '/tmp/work' } };

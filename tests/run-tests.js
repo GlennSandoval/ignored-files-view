@@ -1,9 +1,9 @@
 // Minimal unit tests for parseGitZOutput and listIgnoredFiles without external frameworks
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
-const cp = require('child_process');
-const assert = require('assert');
+const path = require('node:path');
+const fs = require('node:fs');
+const os = require('node:os');
+const cp = require('node:child_process');
+const assert = require('node:assert');
 
 const git = require(path.join(process.cwd(), 'dist', 'git.js'));
 
@@ -20,7 +20,7 @@ async function run() {
       console.log(`✓ ${t.name}`);
     } catch (err) {
       console.error(`✗ ${t.name}`);
-      console.error((err && err.stack) || err);
+      console.error((err?.stack) || err);
       process.exitCode = 1;
     }
   }
