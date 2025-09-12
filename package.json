@@ -110,7 +110,7 @@
     "format": "echo 'add prettier later'",
     "package": "vsce package || echo 'Install vsce to package'",
     "test:unit": "node tests/run-tests.js",
-    "test:smoke": "node tests/smoke/smoke-tests.js",
+    "test:smoke": "node tests/smoke/smoke-tests.js && node tests/smoke/provider-behavior.test.js",
     "test": "npm run build && npm run test:unit && npm run test:smoke",
     "milestones": "node scripts/calc-milestones.js"
   },
