@@ -125,7 +125,7 @@ Track completion using checkboxes below. Run `npm run milestones` to print progr
 ### M5 — Performance & Polish
 
 - [x] Caching of results
-- [ ] Debounced refresh and cancellation
+- [x] Debounced refresh and cancellation
 - [ ] Result caps; telemetry off by default
 
 ### M6 — Docs & Release

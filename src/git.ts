@@ -27,7 +27,7 @@ export function clearIgnoredListCache(cwd?: string) {
   }
 }
 
-export async function listIgnoredFiles(cwd: string): Promise<string[]> {
+export async function listIgnoredFiles(cwd: string, signal?: AbortSignal): Promise<string[]> {
   const now = Date.now();
   const existing = CACHE.get(cwd);
   if (existing && existing.value && existing.expires > now) {
@@ -36,7 +36,7 @@ export async function listIgnoredFiles(cwd: string): Promise<string[]> {
   if (existing?.inflight) return existing.inflight;
 
   const args = ['ls-files', '--others', '-i', '--exclude-standard', '-z'];
-  const p = execFileAsync('git', args, { cwd, maxBuffer: 10 * 1024 * 1024 })
+  const p = execFileAsync('git', args, { cwd, maxBuffer: 10 * 1024 * 1024, signal })
     .then(({ stdout }) => parseGitZOutput(stdout))
     .then((value) => {
       CACHE.set(cwd, { value, expires: Date.now() + CACHE_TTL_MS });

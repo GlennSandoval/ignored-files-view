@@ -54,11 +54,24 @@ class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem
   private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined | void>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   private cache = new Map<string, string[]>();
+  private controllers = new Map<string, AbortController>();
+  private refreshTimer: ReturnType<typeof setTimeout> | undefined;
 
   refresh(): void {
+    // Cancel pending scans and clear caches
+    for (const c of this.controllers.values()) {
+      try { c.abort(); } catch {}
+    }
+    this.controllers.clear();
+
     this.cache.clear();
     clearIgnoredListCache();
-    this._onDidChangeTreeData.fire();
+
+    // Debounce the UI refresh to coalesce bursts
+    if (this.refreshTimer) clearTimeout(this.refreshTimer);
+    this.refreshTimer = setTimeout(() => {
+      this._onDidChangeTreeData.fire();
+    }, 200);
   }
 
   getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
@@ -112,7 +125,21 @@ class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem
   private async getOrScan(folder: vscode.WorkspaceFolder): Promise<string[]> {
     const key = folder.uri.fsPath;
     if (this.cache.has(key)) return this.cache.get(key)!;
-    const files = await listIgnoredFiles(key);
+    // Abort any prior scan for this folder and start a new one
+    const prev = this.controllers.get(key);
+    if (prev) {
+      try { prev.abort(); } catch {}
+    }
+    const controller = new AbortController();
+    this.controllers.set(key, controller);
+
+    const files = await listIgnoredFiles(key, controller.signal);
+    // If a newer controller was created, ignore storing results
+    const current = this.controllers.get(key);
+    if (current !== controller) {
+      return this.cache.get(key) ?? files;
+    }
+    this.controllers.delete(key);
     this.cache.set(key, files);
     return files;
   }
