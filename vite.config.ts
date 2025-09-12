@@ -7,6 +7,14 @@ import { resolve } from 'node:path';
 // - Externalize 'vscode' and Node built-ins.
 // - Keep sourcemaps for easier debugging.
 export default defineConfig({
+  test: {
+    environment: 'node',
+    include: ['tests/unit/**/*.test.{ts,js}'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+    },
+  },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
