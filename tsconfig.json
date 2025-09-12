@@ -9,9 +9,9 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["node", "vscode"]
+    "types": ["node", "vscode"],
+    "forceConsistentCasingInFileNames": true
   },
   "include": ["src"],
   "exclude": ["node_modules", ".vscode-test"]
 }
-
