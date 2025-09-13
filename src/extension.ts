@@ -1,6 +1,6 @@
+import { basename, join } from 'node:path';
 import * as vscode from 'vscode';
-import { join, basename } from 'node:path';
-import { listIgnoredFiles, clearIgnoredListCache, type ListResult } from './git';
+import { clearIgnoredListCache, listIgnoredFiles, type ListResult } from './git';
 
 export function activate(context: vscode.ExtensionContext) {
   const provider = new IgnoredTreeDataProvider();
@@ -70,7 +70,7 @@ class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem
     // Debounce the UI refresh to coalesce bursts
     if (this.refreshTimer) clearTimeout(this.refreshTimer);
     this.refreshTimer = setTimeout(() => {
-      this._onDidChangeTreeData.fire();
+      this._onDidChangeTreeData.fire(undefined);
     }, 200);
   }
 
