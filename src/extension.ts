@@ -57,10 +57,10 @@ export function deactivate(): void {}
  * Tree data provider for ignored files.
  */
 class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
-  private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined>();
-  readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
-  private cache = new Map<string, ListResult>();
-  private controllers = new Map<string, AbortController>();
+  private _onDidChangeTreeDataEmitter = new vscode.EventEmitter<vscode.TreeItem | undefined>();
+  readonly onDidChangeTreeData = this._onDidChangeTreeDataEmitter.event;
+  private folderCache = new Map<string, ListResult>();
+  private scanControllers = new Map<string, AbortController>();
   private refreshTimer: ReturnType<typeof setTimeout> | undefined;
 
   /**
@@ -68,18 +68,18 @@ class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem
    */
   refresh(): void {
     // Cancel pending scans and clear caches
-    for (const c of this.controllers.values()) {
-      try { c.abort(); } catch {}
+    for (const controller of this.scanControllers.values()) {
+      try { controller.abort(); } catch {}
     }
-    this.controllers.clear();
+    this.scanControllers.clear();
 
-    this.cache.clear();
+    this.folderCache.clear();
     clearIgnoredListCache();
 
     // Debounce the UI refresh to coalesce bursts
     if (this.refreshTimer) clearTimeout(this.refreshTimer);
     this.refreshTimer = setTimeout(() => {
-      this._onDidChangeTreeData.fire(undefined);
+      this._onDidChangeTreeDataEmitter.fire(undefined);
     }, 200);
   }
 
@@ -156,25 +156,25 @@ class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem
    * @param folder The workspace folder.
    */
   private async getOrScan(folder: vscode.WorkspaceFolder): Promise<ListResult> {
-    const key = folder.uri.fsPath;
-    if (this.cache.has(key)) return this.cache.get(key) as ListResult;
+    const folderPath = folder.uri.fsPath;
+    if (this.folderCache.has(folderPath)) return this.folderCache.get(folderPath) as ListResult;
     // Abort any prior scan for this folder and start a new one
-    const prev = this.controllers.get(key);
-    if (prev) {
-      try { prev.abort(); } catch {}
+    const previousController = this.scanControllers.get(folderPath);
+    if (previousController) {
+      try { previousController.abort(); } catch {}
     }
-    const controller = new AbortController();
-    this.controllers.set(key, controller);
+    const abortController = new AbortController();
+    this.scanControllers.set(folderPath, abortController);
 
     const maxItems = getMaxItems();
-    const result = await listIgnoredFiles(key, maxItems, controller.signal);
+    const result = await listIgnoredFiles(folderPath, maxItems, abortController.signal);
     // If a newer controller was created, ignore storing results
-    const current = this.controllers.get(key);
-    if (current !== controller) {
-      return this.cache.get(key) ?? result;
+    const currentController = this.scanControllers.get(folderPath);
+    if (currentController !== abortController) {
+      return this.folderCache.get(folderPath) ?? result;
     }
-    this.controllers.delete(key);
-    this.cache.set(key, result);
+    this.scanControllers.delete(folderPath);
+    this.folderCache.set(folderPath, result);
     return result;
   }
 
@@ -352,31 +352,31 @@ function buildChildrenForDir(
   allFiles: string[],
   dirPath?: string
 ): vscode.TreeItem[] {
-  const prefix = dirPath ? `${dirPath.replace(/[\\/]+$/, '')}/` : '';
-  const subdirs = new Set<string>();
-  const files: string[] = [];
+  const prefix = dirPath ? `${dirPath.replace(/[\/]+$/, '')}/` : '';
+  const subdirectoryNames = new Set<string>();
+  const filePaths: string[] = [];
 
-  for (const rel of allFiles) {
-    if (!rel.startsWith(prefix)) continue;
-    const rest = rel.slice(prefix.length);
-    if (!rest) continue;
-    const idx = rest.indexOf('/');
-    if (idx === -1) {
-      files.push(rel); // file directly under this directory
+  for (const relativePath of allFiles) {
+    if (!relativePath.startsWith(prefix)) continue;
+    const restOfPath = relativePath.slice(prefix.length);
+    if (!restOfPath) continue;
+    const firstSlashIndex = restOfPath.indexOf('/');
+    if (firstSlashIndex === -1) {
+      filePaths.push(relativePath); // file directly under this directory
     } else {
-      subdirs.add(rest.slice(0, idx));
+      subdirectoryNames.add(restOfPath.slice(0, firstSlashIndex));
     }
   }
 
-  const dirItems = Array.from(subdirs)
+  const directoryItems = Array.from(subdirectoryNames)
     .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
-    .map((name) => new DirectoryItem(folder, prefix + name));
+    .map((subdirName) => new DirectoryItem(folder, prefix + subdirName));
 
-  const fileItems = files
+  const fileItems = filePaths
     .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
-    .map((rel) => new FileItem(folder, rel));
+    .map((relativePath) => new FileItem(folder, relativePath));
 
-  return [...dirItems, ...fileItems];
+  return [...directoryItems, ...fileItems];
 }
 
 /**

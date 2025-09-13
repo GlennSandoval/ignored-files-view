@@ -67,19 +67,19 @@ export async function listIgnoredFiles(
 
   const args = ['ls-files', '--others', '-i', '--exclude-standard', '-z'];
 
-  const p = new Promise<ListResult>((resolve, reject) => {
+  const promise = new Promise<ListResult>((resolve, reject) => {
     const child = spawn('git', args, { cwd });
-    let buf = Buffer.alloc(0);
+    let buffer = Buffer.alloc(0);
     const files: string[] = [];
     let truncated = false;
 
     const onData = (chunk: Buffer) => {
-      buf = Buffer.concat([buf, chunk]);
-      // Split by NUL, but keep the trailing partial in buf
+      buffer = Buffer.concat([buffer, chunk]);
+      // Split by NUL, but keep the trailing partial in buffer
       let start = 0;
-      for (let i = 0; i < buf.length; i++) {
-        if (buf[i] === 0x00) {
-          const piece = buf.slice(start, i).toString();
+      for (let i = 0; i < buffer.length; i++) {
+        if (buffer[i] === 0x00) {
+          const piece = buffer.slice(start, i).toString();
           if (piece) files.push(piece);
           start = i + 1;
           if (files.length >= maxItems) {
@@ -91,8 +91,8 @@ export async function listIgnoredFiles(
           }
         }
       }
-      // Keep the leftover partial piece in buf
-      buf = buf.slice(start);
+      // Keep the leftover partial piece in buffer
+      buffer = buffer.slice(start);
     };
 
     const onError = (e: unknown) => {
@@ -102,8 +102,8 @@ export async function listIgnoredFiles(
 
     const onClose = (code: number) => {
       // Flush any trailing partial (unlikely with -z, but safe)
-      if (buf.length) {
-        const tail = buf.toString();
+      if (buffer.length) {
+        const tail = buffer.toString();
         if (tail) files.push(tail);
       }
       finish();
@@ -128,8 +128,8 @@ export async function listIgnoredFiles(
     const onStderr = (chunk: Buffer) => {
       // If fatal error occurs, capture and map later on close
       // For simplicity, if we see 'fatal' immediately reject
-      const s = chunk.toString();
-      if (s.includes('fatal')) {
+      const stderrString = chunk.toString();
+      if (stderrString.includes('fatal')) {
         cleanup();
         reject(new Error('Not a Git repository or Git unavailable'));
       }
@@ -168,6 +168,6 @@ export async function listIgnoredFiles(
       if (entry) entry.inflight = undefined;
     });
 
-  CACHE.set(key, { expires: now + CACHE_TTL_MS, inflight: p });
-  return p;
+  CACHE.set(key, { expires: now + CACHE_TTL_MS, inflight: promise });
+  return promise;
 }
