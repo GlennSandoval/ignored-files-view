@@ -1,3 +1,10 @@
+/**
+ * VS Code extension entry point for the Show Ignored plugin.
+ *
+ * Provides a tree view listing .gitignored files and folders in the workspace.
+ * Supports opening, revealing, copying, and deleting ignored files, with caching and trust checks.
+ * Main logic: IgnoredTreeDataProvider, command registration, and file operations.
+ */
 import { basename, join } from 'node:path';
 import * as vscode from 'vscode';
 import { clearIgnoredListCache, listIgnoredFiles, type ListResult } from './git';
