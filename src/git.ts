@@ -1,15 +1,15 @@
 import { spawn } from "node:child_process";
 
+// Reuse a collator for stable, fast, case-insensitive sorting
+const collator = new Intl.Collator(undefined, { sensitivity: "base" });
+
 /**
  * Parses the output of `git ls-files -z` into a sorted array of file paths.
  * @param stdout - The raw stdout string from Git, NUL-delimited.
  * @returns Sorted array of file paths.
  */
 export function parseGitZOutput(stdout: string): string[] {
-  return stdout
-    .split("\u0000")
-    .filter(Boolean)
-    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  return stdout.split("\u0000").filter(Boolean).sort(collator.compare);
 }
 
 type CacheEntry = {
@@ -23,14 +23,9 @@ const CACHE_TTL_MS = 10_000; // conservative default; provider refresh clears th
 
 /**
  * Clears the ignored files list cache.
- * @param cwd - Optional working directory to clear cache for; clears all if omitted.
  */
-export function clearIgnoredListCache(cwd?: string) {
-  if (cwd) {
-    CACHE.delete(cwd);
-  } else {
-    CACHE.clear();
-  }
+export function clearIgnoredListCache() {
+  CACHE.clear();
 }
 
 /**
@@ -68,33 +63,34 @@ export async function listIgnoredFiles(
   const args = ["ls-files", "--others", "-i", "--exclude-standard", "-z"];
 
   const promise = new Promise<ListResult>((resolve, reject) => {
-    const child = spawn("git", args, { cwd });
+    const child = spawn("git", args, { cwd, windowsHide: true });
     let buffer = Buffer.alloc(0);
     const files: string[] = [];
     let truncated = false;
 
     const onData = (chunk: Buffer) => {
-      buffer = Buffer.concat([buffer, chunk]);
-      // Split by NUL, but keep the trailing partial in buffer
+      // Avoid an extra allocation when we don't have a leftover buffer
+      const data = buffer.length ? Buffer.concat([buffer, chunk]) : chunk;
+      // Scan for NUL delimiters; keep trailing partial in buffer
       let start = 0;
-      for (let i = 0; i < buffer.length; i++) {
-        if (buffer[i] === 0x00) {
-          const piece = buffer.slice(start, i).toString();
-          if (piece) files.push(piece);
-          start = i + 1;
-          if (files.length >= maxItems) {
-            truncated = true;
-            cleanup();
-            try {
-              child.kill();
-            } catch {}
-            finish();
-            return;
-          }
+      while (true) {
+        const nul = data.indexOf(0x00, start);
+        if (nul === -1) break;
+        const piece = data.toString("utf8", start, nul);
+        if (piece) files.push(piece);
+        start = nul + 1;
+        if (files.length >= maxItems) {
+          truncated = true;
+          cleanup();
+          try {
+            child.kill();
+          } catch {}
+          finish();
+          return;
         }
       }
-      // Keep the leftover partial piece in buffer
-      buffer = buffer.subarray(start);
+      // Use Buffer.from to ensure correct type
+      buffer = Buffer.from(data.subarray(start));
     };
 
     const onError = (e: unknown) => {
@@ -102,7 +98,7 @@ export async function listIgnoredFiles(
       reject(e);
     };
 
-    const onClose = (code: number) => {
+    const onClose = (code: number | null, _signal?: NodeJS.Signals | null) => {
       // Flush any trailing partial (unlikely with -z, but safe)
       if (buffer.length) {
         const tail = buffer.toString();
@@ -113,7 +109,7 @@ export async function listIgnoredFiles(
 
     const finish = () => {
       // Sort results for stable UI
-      const sorted = files.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+      const sorted = files.sort(collator.compare);
       const value: ListResult = { files: sorted, truncated };
       CACHE.set(key, { value, expires: Date.now() + CACHE_TTL_MS });
       resolve(value);
