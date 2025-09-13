@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { spawn } from "node:child_process";
 
 /**
  * Parses the output of `git ls-files -z` into a sorted array of file paths.
@@ -7,9 +7,9 @@ import { spawn } from 'node:child_process';
  */
 export function parseGitZOutput(stdout: string): string[] {
   return stdout
-    .split('\u0000')
+    .split("\u0000")
     .filter(Boolean)
-    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
 }
 
 type CacheEntry = {
@@ -55,7 +55,7 @@ export type ListResult = {
 export async function listIgnoredFiles(
   cwd: string,
   maxItems: number,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<ListResult> {
   const key = `${cwd}::${maxItems}`;
   const now = Date.now();
@@ -65,10 +65,10 @@ export async function listIgnoredFiles(
   }
   if (existing?.inflight) return existing.inflight;
 
-  const args = ['ls-files', '--others', '-i', '--exclude-standard', '-z'];
+  const args = ["ls-files", "--others", "-i", "--exclude-standard", "-z"];
 
   const promise = new Promise<ListResult>((resolve, reject) => {
-    const child = spawn('git', args, { cwd });
+    const child = spawn("git", args, { cwd });
     let buffer = Buffer.alloc(0);
     const files: string[] = [];
     let truncated = false;
@@ -85,14 +85,16 @@ export async function listIgnoredFiles(
           if (files.length >= maxItems) {
             truncated = true;
             cleanup();
-            try { child.kill(); } catch {}
+            try {
+              child.kill();
+            } catch {}
             finish();
             return;
           }
         }
       }
       // Keep the leftover partial piece in buffer
-      buffer = buffer.slice(start);
+      buffer = buffer.subarray(start);
     };
 
     const onError = (e: unknown) => {
@@ -111,55 +113,57 @@ export async function listIgnoredFiles(
 
     const finish = () => {
       // Sort results for stable UI
-      const sorted = files.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+      const sorted = files.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
       const value: ListResult = { files: sorted, truncated };
       CACHE.set(key, { value, expires: Date.now() + CACHE_TTL_MS });
       resolve(value);
     };
 
     const cleanup = () => {
-      child.stdout?.off('data', onData);
-      child.stderr?.off('data', onStderr);
-      child.off('error', onError);
-      child.off('close', onClose);
-      if (signal) signal.removeEventListener('abort', onAbort);
+      child.stdout?.off("data", onData);
+      child.stderr?.off("data", onStderr);
+      child.off("error", onError);
+      child.off("close", onClose);
+      if (signal) signal.removeEventListener("abort", onAbort);
     };
 
     const onStderr = (chunk: Buffer) => {
       // If fatal error occurs, capture and map later on close
       // For simplicity, if we see 'fatal' immediately reject
       const stderrString = chunk.toString();
-      if (stderrString.includes('fatal')) {
+      if (stderrString.includes("fatal")) {
         cleanup();
-        reject(new Error('Not a Git repository or Git unavailable'));
+        reject(new Error("Not a Git repository or Git unavailable"));
       }
     };
 
     const onAbort = () => {
-      try { child.kill(); } catch {}
+      try {
+        child.kill();
+      } catch {}
       cleanup();
       // Do not reject; surface as normal cancellation error message upstream
-      reject(new Error('Operation cancelled'));
+      reject(new Error("Operation cancelled"));
     };
 
     if (signal) {
       if (signal.aborted) return onAbort();
-      signal.addEventListener('abort', onAbort, { once: true });
+      signal.addEventListener("abort", onAbort, { once: true });
     }
 
-    child.stdout.on('data', onData);
-    child.stderr.on('data', onStderr);
-    child.on('error', onError);
-    child.on('close', onClose);
+    child.stdout.on("data", onData);
+    child.stderr.on("data", onStderr);
+    child.on("error", onError);
+    child.on("close", onClose);
   })
     .catch((e: unknown) => {
       // Map common fatal errors
       const err = e as { message?: unknown; stderr?: unknown };
-      if (typeof err.message === 'string' && err.message.includes('Not a Git repository')) {
+      if (typeof err.message === "string" && err.message.includes("Not a Git repository")) {
         throw e;
       }
-      if (typeof err.stderr === 'string' && err.stderr.includes('fatal')) {
-        throw new Error('Not a Git repository or Git unavailable');
+      if (typeof err.stderr === "string" && err.stderr.includes("fatal")) {
+        throw new Error("Not a Git repository or Git unavailable");
       }
       throw e;
     })

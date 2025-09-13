@@ -5,9 +5,9 @@
  * Supports opening, revealing, copying, and deleting ignored files, with caching and trust checks.
  * Main logic: IgnoredTreeDataProvider, command registration, and file operations.
  */
-import { basename, join } from 'node:path';
-import * as vscode from 'vscode';
-import { clearIgnoredListCache, listIgnoredFiles, type ListResult } from './git';
+import { basename, join } from "node:path";
+import * as vscode from "vscode";
+import { type ListResult, clearIgnoredListCache, listIgnoredFiles } from "./git";
 
 const MAX_ITEMS_FALLBACK = 2000;
 
@@ -22,7 +22,7 @@ export function activate(context: vscode.ExtensionContext): void {
   function requireItem<T>(cb: (item: T) => Promise<void>): (item?: T) => Promise<void> {
     return async (item?: T) => {
       if (!item) {
-        vscode.window.showInformationMessage('Select a file from the Ignored Files view.');
+        vscode.window.showInformationMessage("Select a file from the Ignored Files view.");
         return;
       }
       await cb(item);
@@ -30,21 +30,24 @@ export function activate(context: vscode.ExtensionContext): void {
   }
 
   context.subscriptions.push(
-    vscode.window.registerTreeDataProvider('ignoredFilesView', provider),
-    vscode.commands.registerCommand('show-ignored.refresh', () => provider.refresh()),
-    vscode.commands.registerCommand('show-ignored.open', requireItem(openFile)),
-    vscode.commands.registerCommand('show-ignored.reveal', requireItem(revealFile)),
-    vscode.commands.registerCommand('show-ignored.copyPath', requireItem(copyPath)),
-    vscode.commands.registerCommand('show-ignored.delete', requireItem(async (item: FileOrDirItem) => {
-      if (!(await ensureTrustedForWrite())) return;
-      await deleteResource(item, provider);
-    })),
-    vscode.commands.registerCommand('show-ignored.unignore', async (item?: FileItem) => {
+    vscode.window.registerTreeDataProvider("ignoredFilesView", provider),
+    vscode.commands.registerCommand("show-ignored.refresh", () => provider.refresh()),
+    vscode.commands.registerCommand("show-ignored.open", requireItem(openFile)),
+    vscode.commands.registerCommand("show-ignored.reveal", requireItem(revealFile)),
+    vscode.commands.registerCommand("show-ignored.copyPath", requireItem(copyPath)),
+    vscode.commands.registerCommand(
+      "show-ignored.delete",
+      requireItem(async (item: FileOrDirItem) => {
+        if (!(await ensureTrustedForWrite())) return;
+        await deleteResource(item, provider);
+      }),
+    ),
+    vscode.commands.registerCommand("show-ignored.unignore", async (item?: FileItem) => {
       if (!(await ensureTrustedForWrite())) return;
       await requireItem(async () => {
-        vscode.window.showInformationMessage('Unignore action is not implemented yet.');
+        vscode.window.showInformationMessage("Unignore action is not implemented yet.");
       })(item as FileItem);
-    })
+    }),
   );
 }
 
@@ -69,7 +72,9 @@ class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem
   refresh(): void {
     // Cancel pending scans and clear caches
     for (const controller of this.scanControllers.values()) {
-      try { controller.abort(); } catch {}
+      try {
+        controller.abort();
+      } catch {}
     }
     this.scanControllers.clear();
 
@@ -96,14 +101,16 @@ class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem
    * @param element The parent tree item, or undefined for root.
    */
   async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
-    const trust = await vscode.workspace.getConfiguration('security').get<boolean>('workspace.trust.enabled');
+    const trust = await vscode.workspace
+      .getConfiguration("security")
+      .get<boolean>("workspace.trust.enabled");
     if (trust && vscode.workspace.isTrusted === false) {
-      return [new MessageItem('Workspace is untrusted — listing disabled')];
+      return [new MessageItem("Workspace is untrusted — listing disabled")];
     }
 
     const folders = vscode.workspace.workspaceFolders ?? [];
     if (!folders.length) {
-      return [new MessageItem('Open a folder inside a Git repository')];
+      return [new MessageItem("Open a folder inside a Git repository")];
     }
 
     if (!element) {
@@ -134,13 +141,13 @@ class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem
     try {
       const result = await this.getOrScan(folder);
       if (!result.files.length) {
-        return [new MessageItem('No ignored files')];
+        return [new MessageItem("No ignored files")];
       }
       const maxItems = getMaxItems();
       const items = buildChildrenForDir(folder, result.files);
       if (result.truncated) {
         const note = new MessageItem(
-          `Showing first ${maxItems} ignored files (capped by setting ignored.maxItems)`
+          `Showing first ${maxItems} ignored files (capped by setting ignored.maxItems)`,
         );
         return [note, ...items];
       }
@@ -161,7 +168,9 @@ class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem
     // Abort any prior scan for this folder and start a new one
     const previousController = this.scanControllers.get(folderPath);
     if (previousController) {
-      try { previousController.abort(); } catch {}
+      try {
+        previousController.abort();
+      } catch {}
     }
     const abortController = new AbortController();
     this.scanControllers.set(folderPath, abortController);
@@ -183,7 +192,10 @@ class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem
    * @param folder The workspace folder.
    * @param dirPath The relative directory path.
    */
-  private async getChildrenForDirectory(folder: vscode.WorkspaceFolder, dirPath: string): Promise<vscode.TreeItem[]> {
+  private async getChildrenForDirectory(
+    folder: vscode.WorkspaceFolder,
+    dirPath: string,
+  ): Promise<vscode.TreeItem[]> {
     const result = await this.getOrScan(folder);
     return buildChildrenForDir(folder, result.files, dirPath);
   }
@@ -198,8 +210,8 @@ class MessageItem extends vscode.TreeItem {
    */
   constructor(message: string) {
     super(message, vscode.TreeItemCollapsibleState.None);
-    this.contextValue = 'message';
-    this.iconPath = new vscode.ThemeIcon('info');
+    this.contextValue = "message";
+    this.iconPath = new vscode.ThemeIcon("info");
   }
 }
 
@@ -212,7 +224,7 @@ class FolderItem extends vscode.TreeItem {
    */
   constructor(public readonly folder: vscode.WorkspaceFolder) {
     super(folder.name, vscode.TreeItemCollapsibleState.Collapsed);
-    this.contextValue = 'folder';
+    this.contextValue = "folder";
     this.resourceUri = folder.uri;
   }
 }
@@ -225,9 +237,12 @@ class DirectoryItem extends vscode.TreeItem {
    * @param folder The workspace folder.
    * @param dirPath The relative directory path.
    */
-  constructor(public readonly folder: vscode.WorkspaceFolder, public readonly dirPath: string) {
+  constructor(
+    public readonly folder: vscode.WorkspaceFolder,
+    public readonly dirPath: string,
+  ) {
     super(dirPath.split(/[\\/]/).pop() || dirPath, vscode.TreeItemCollapsibleState.Collapsed);
-    this.contextValue = 'dir';
+    this.contextValue = "dir";
     this.resourceUri = vscode.Uri.file(join(folder.uri.fsPath, dirPath));
     this.iconPath = vscode.ThemeIcon.Folder;
   }
@@ -241,14 +256,17 @@ class FileItem extends vscode.TreeItem {
    * @param folder The workspace folder.
    * @param relativePath The file's relative path.
    */
-  constructor(public readonly folder: vscode.WorkspaceFolder, public readonly relativePath: string) {
+  constructor(
+    public readonly folder: vscode.WorkspaceFolder,
+    public readonly relativePath: string,
+  ) {
     super(relativePath.split(/[\\/]/).pop() || relativePath, vscode.TreeItemCollapsibleState.None);
-    this.contextValue = 'file';
+    this.contextValue = "file";
     this.resourceUri = vscode.Uri.file(join(folder.uri.fsPath, relativePath));
     this.command = {
-      command: 'show-ignored.open',
-      title: 'Open File',
-      arguments: [this]
+      command: "show-ignored.open",
+      title: "Open File",
+      arguments: [this],
     };
     this.iconPath = vscode.ThemeIcon.File;
   }
@@ -269,23 +287,23 @@ async function openFile(item: FileItem): Promise<void> {
     // (text editor, image viewer, custom editors, etc.).
     const uri = item.resourceUri;
     if (!uri) {
-      vscode.window.showWarningMessage('This item has no resource to open.');
+      vscode.window.showWarningMessage("This item has no resource to open.");
       return;
     }
-    await vscode.commands.executeCommand('vscode.open', uri, { preview: true });
+    await vscode.commands.executeCommand("vscode.open", uri, { preview: true });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     const choice = await vscode.window.showErrorMessage(
       `Cannot open this file in VS Code: ${msg}`,
-      'Open Externally',
-      'Reveal in Explorer'
+      "Open Externally",
+      "Reveal in Explorer",
     );
-    if (choice === 'Open Externally') {
+    if (choice === "Open Externally") {
       const uri = item.resourceUri;
       if (uri) await vscode.env.openExternal(uri);
-    } else if (choice === 'Reveal in Explorer') {
+    } else if (choice === "Reveal in Explorer") {
       const uri = item.resourceUri;
-      if (uri) await vscode.commands.executeCommand('revealInExplorer', uri);
+      if (uri) await vscode.commands.executeCommand("revealInExplorer", uri);
     }
   }
 }
@@ -296,7 +314,7 @@ async function openFile(item: FileItem): Promise<void> {
  */
 async function revealFile(item: FileOrDirItem): Promise<void> {
   if (!item.resourceUri) return;
-  await vscode.commands.executeCommand('revealInExplorer', item.resourceUri);
+  await vscode.commands.executeCommand("revealInExplorer", item.resourceUri);
 }
 
 /**
@@ -307,7 +325,7 @@ async function copyPath(item: FileOrDirItem): Promise<void> {
   const fsPath = item.resourceUri?.fsPath;
   if (fsPath) {
     await vscode.env.clipboard.writeText(fsPath);
-    vscode.window.showInformationMessage('Path copied to clipboard');
+    vscode.window.showInformationMessage("Path copied to clipboard");
   }
 }
 
@@ -316,9 +334,11 @@ async function copyPath(item: FileOrDirItem): Promise<void> {
  * @returns True if trusted, false otherwise.
  */
 async function ensureTrustedForWrite(): Promise<boolean> {
-  const trustEnabled = vscode.workspace.getConfiguration('security').get<boolean>('workspace.trust.enabled');
+  const trustEnabled = vscode.workspace
+    .getConfiguration("security")
+    .get<boolean>("workspace.trust.enabled");
   if (trustEnabled && vscode.workspace.isTrusted === false) {
-    vscode.window.showWarningMessage('This action is disabled in untrusted workspaces.');
+    vscode.window.showWarningMessage("This action is disabled in untrusted workspaces.");
     return false;
   }
   return true;
@@ -329,11 +349,12 @@ async function ensureTrustedForWrite(): Promise<boolean> {
  * @returns The maximum number of items.
  */
 function getMaxItems(): number {
-  const cfg = vscode.workspace.getConfiguration('ignored');
+  const cfg = vscode.workspace.getConfiguration("ignored");
   // Read contributed default via inspect when available (single source of truth).
-  const inspected = (cfg as any).inspect?.('maxItems') as { defaultValue?: number } | undefined;
-  const contributedDefault = typeof inspected?.defaultValue === 'number' ? inspected.defaultValue : MAX_ITEMS_FALLBACK;
-  let n = cfg.get<number>('maxItems', contributedDefault);
+  const inspected = (cfg as any).inspect?.("maxItems") as { defaultValue?: number } | undefined;
+  const contributedDefault =
+    typeof inspected?.defaultValue === "number" ? inspected.defaultValue : MAX_ITEMS_FALLBACK;
+  let n = cfg.get<number>("maxItems", contributedDefault);
   // Clamp to sane bounds
   if (!Number.isFinite(n) || n <= 0) n = contributedDefault;
   if (n > MAX_ITEMS_FALLBACK) n = MAX_ITEMS_FALLBACK;
@@ -350,9 +371,9 @@ function getMaxItems(): number {
 function buildChildrenForDir(
   folder: vscode.WorkspaceFolder,
   allFiles: string[],
-  dirPath?: string
+  dirPath?: string,
 ): vscode.TreeItem[] {
-  const prefix = dirPath ? `${dirPath.replace(/[\/]+$/, '')}/` : '';
+  const prefix = dirPath ? `${dirPath.replace(/[\/]+$/, "")}/` : "";
   const subdirectoryNames = new Set<string>();
   const filePaths: string[] = [];
 
@@ -360,7 +381,7 @@ function buildChildrenForDir(
     if (!relativePath.startsWith(prefix)) continue;
     const restOfPath = relativePath.slice(prefix.length);
     if (!restOfPath) continue;
-    const firstSlashIndex = restOfPath.indexOf('/');
+    const firstSlashIndex = restOfPath.indexOf("/");
     if (firstSlashIndex === -1) {
       filePaths.push(relativePath); // file directly under this directory
     } else {
@@ -369,11 +390,11 @@ function buildChildrenForDir(
   }
 
   const directoryItems = Array.from(subdirectoryNames)
-    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }))
     .map((subdirName) => new DirectoryItem(folder, prefix + subdirName));
 
   const fileItems = filePaths
-    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }))
     .map((relativePath) => new FileItem(folder, relativePath));
 
   return [...directoryItems, ...fileItems];
@@ -384,19 +405,25 @@ function buildChildrenForDir(
  * @param item The file or directory item to delete.
  * @param provider The tree data provider (for refresh).
  */
-async function deleteResource(item: FileOrDirItem, provider: IgnoredTreeDataProvider): Promise<void> {
+async function deleteResource(
+  item: FileOrDirItem,
+  provider: IgnoredTreeDataProvider,
+): Promise<void> {
   const uri = item.resourceUri;
   if (!uri) return;
   const name = basename(uri.fsPath);
   const choice = await vscode.window.showWarningMessage(
-    `Delete '${name}'? This moves the ${item instanceof DirectoryItem ? 'folder' : 'file'} to the OS trash.`,
+    `Delete '${name}'? This moves the ${item instanceof DirectoryItem ? "folder" : "file"} to the OS trash.`,
     { modal: true },
-    'Delete'
+    "Delete",
   );
-  if (choice !== 'Delete') return;
+  if (choice !== "Delete") return;
 
   try {
-    await vscode.workspace.fs.delete(uri, { useTrash: true, recursive: item instanceof DirectoryItem });
+    await vscode.workspace.fs.delete(uri, {
+      useTrash: true,
+      recursive: item instanceof DirectoryItem,
+    });
     vscode.window.showInformationMessage(`Deleted '${name}'`);
     provider.refresh();
   } catch (err: unknown) {
