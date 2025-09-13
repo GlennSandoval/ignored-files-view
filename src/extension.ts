@@ -15,48 +15,35 @@ const MAX_ITEMS_FALLBACK = 2000;
  * Activates the extension and registers commands and tree provider.
  * @param context The VS Code extension context.
  */
-export function activate(context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext): void {
   const provider = new IgnoredTreeDataProvider();
+
+  // Helper to require an item, otherwise show info message
+  function requireItem<T>(cb: (item: T) => Promise<void>): (item?: T) => Promise<void> {
+    return async (item?: T) => {
+      if (!item) {
+        vscode.window.showInformationMessage('Select a file from the Ignored Files view.');
+        return;
+      }
+      await cb(item);
+    };
+  }
 
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider('ignoredFilesView', provider),
     vscode.commands.registerCommand('show-ignored.refresh', () => provider.refresh()),
-    vscode.commands.registerCommand('show-ignored.open', async (item?: FileItem) => {
-      if (!item) {
-        vscode.window.showInformationMessage('Select a file from the Ignored Files view.');
-        return;
-      }
-      await openFile(item);
-    }),
-    vscode.commands.registerCommand('show-ignored.reveal', async (item?: FileOrDirItem) => {
-      if (!item) {
-        vscode.window.showInformationMessage('Select a file from the Ignored Files view.');
-        return;
-      }
-      await revealFile(item);
-    }),
-    vscode.commands.registerCommand('show-ignored.copyPath', async (item?: FileOrDirItem) => {
-      if (!item) {
-        vscode.window.showInformationMessage('Select a file from the Ignored Files view.');
-        return;
-      }
-      await copyPath(item);
-    }),
-    vscode.commands.registerCommand('show-ignored.delete', async (item?: FileOrDirItem) => {
+    vscode.commands.registerCommand('show-ignored.open', requireItem(openFile)),
+    vscode.commands.registerCommand('show-ignored.reveal', requireItem(revealFile)),
+    vscode.commands.registerCommand('show-ignored.copyPath', requireItem(copyPath)),
+    vscode.commands.registerCommand('show-ignored.delete', requireItem(async (item: FileOrDirItem) => {
       if (!(await ensureTrustedForWrite())) return;
-      if (!item) {
-        vscode.window.showInformationMessage('Select a file from the Ignored Files view.');
-        return;
-      }
       await deleteResource(item, provider);
-    }),
+    })),
     vscode.commands.registerCommand('show-ignored.unignore', async (item?: FileItem) => {
       if (!(await ensureTrustedForWrite())) return;
-      if (!item) {
-        vscode.window.showInformationMessage('Select a file from the Ignored Files view.');
-        return;
-      }
-      vscode.window.showInformationMessage('Unignore action is not implemented yet.');
+      await requireItem(async () => {
+        vscode.window.showInformationMessage('Unignore action is not implemented yet.');
+      })(item as FileItem);
     })
   );
 }
@@ -64,7 +51,7 @@ export function activate(context: vscode.ExtensionContext) {
 /**
  * Deactivates the extension.
  */
-export function deactivate() {}
+export function deactivate(): void {}
 
 /**
  * Tree data provider for ignored files.
@@ -267,13 +254,16 @@ class FileItem extends vscode.TreeItem {
   }
 }
 
+/**
+ * Represents any item in the ignored files tree that can be a file, directory, or folder.
+ */
 type FileOrDirItem = FileItem | DirectoryItem | FolderItem;
 
 /**
  * Opens a file in the appropriate VS Code editor.
  * @param item The file item to open.
  */
-async function openFile(item: FileItem) {
+async function openFile(item: FileItem): Promise<void> {
   try {
     // Use the generic open command so VS Code picks the right editor
     // (text editor, image viewer, custom editors, etc.).
@@ -304,7 +294,7 @@ async function openFile(item: FileItem) {
  * Reveals a file or directory in the VS Code explorer.
  * @param item The file or directory item.
  */
-async function revealFile(item: FileOrDirItem) {
+async function revealFile(item: FileOrDirItem): Promise<void> {
   if (!item.resourceUri) return;
   await vscode.commands.executeCommand('revealInExplorer', item.resourceUri);
 }
@@ -313,7 +303,7 @@ async function revealFile(item: FileOrDirItem) {
  * Copies the file or directory path to the clipboard.
  * @param item The file or directory item.
  */
-async function copyPath(item: FileOrDirItem) {
+async function copyPath(item: FileOrDirItem): Promise<void> {
   const fsPath = item.resourceUri?.fsPath;
   if (fsPath) {
     await vscode.env.clipboard.writeText(fsPath);
@@ -394,7 +384,7 @@ function buildChildrenForDir(
  * @param item The file or directory item to delete.
  * @param provider The tree data provider (for refresh).
  */
-async function deleteResource(item: FileOrDirItem, provider: IgnoredTreeDataProvider) {
+async function deleteResource(item: FileOrDirItem, provider: IgnoredTreeDataProvider): Promise<void> {
   const uri = item.resourceUri;
   if (!uri) return;
   const name = basename(uri.fsPath);
