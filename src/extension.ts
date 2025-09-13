@@ -2,6 +2,8 @@ import { basename, join } from 'node:path';
 import * as vscode from 'vscode';
 import { clearIgnoredListCache, listIgnoredFiles, type ListResult } from './git';
 
+const MAX_ITEMS_FALLBACK = 2000;
+
 export function activate(context: vscode.ExtensionContext) {
   const provider = new IgnoredTreeDataProvider();
 
@@ -252,10 +254,13 @@ async function ensureTrustedForWrite(): Promise<boolean> {
 
 function getMaxItems(): number {
   const cfg = vscode.workspace.getConfiguration('ignored');
-  let n = cfg.get<number>('maxItems', 2000);
+  // Read contributed default via inspect when available (single source of truth).
+  const inspected = (cfg as any).inspect?.('maxItems') as { defaultValue?: number } | undefined;
+  const contributedDefault = typeof inspected?.defaultValue === 'number' ? inspected.defaultValue : MAX_ITEMS_FALLBACK;
+  let n = cfg.get<number>('maxItems', contributedDefault);
   // Clamp to sane bounds
-  if (!Number.isFinite(n) || n <= 0) n = 2000;
-  if (n > 20000) n = 20000;
+  if (!Number.isFinite(n) || n <= 0) n = contributedDefault;
+  if (n > MAX_ITEMS_FALLBACK) n = MAX_ITEMS_FALLBACK;
   return Math.floor(n);
 }
 
