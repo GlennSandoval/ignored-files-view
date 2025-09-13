@@ -4,6 +4,10 @@ import { clearIgnoredListCache, listIgnoredFiles, type ListResult } from './git'
 
 const MAX_ITEMS_FALLBACK = 2000;
 
+/**
+ * Activates the extension and registers commands and tree provider.
+ * @param context The VS Code extension context.
+ */
 export function activate(context: vscode.ExtensionContext) {
   const provider = new IgnoredTreeDataProvider();
 
@@ -50,8 +54,14 @@ export function activate(context: vscode.ExtensionContext) {
   );
 }
 
+/**
+ * Deactivates the extension.
+ */
 export function deactivate() {}
 
+/**
+ * Tree data provider for ignored files.
+ */
 class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<vscode.TreeItem | undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
@@ -59,6 +69,9 @@ class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem
   private controllers = new Map<string, AbortController>();
   private refreshTimer: ReturnType<typeof setTimeout> | undefined;
 
+  /**
+   * Refreshes the tree view, clearing caches and debouncing UI updates.
+   */
   refresh(): void {
     // Cancel pending scans and clear caches
     for (const c of this.controllers.values()) {
@@ -76,10 +89,18 @@ class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem
     }, 200);
   }
 
+  /**
+   * Returns the tree item for the given element.
+   * @param element The tree item element.
+   */
   getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
     return element;
   }
 
+  /**
+   * Gets the children for the given tree item element.
+   * @param element The parent tree item, or undefined for root.
+   */
   async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
     const trust = await vscode.workspace.getConfiguration('security').get<boolean>('workspace.trust.enabled');
     if (trust && vscode.workspace.isTrusted === false) {
@@ -111,6 +132,10 @@ class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem
     return [];
   }
 
+  /**
+   * Gets the ignored files for a workspace folder.
+   * @param folder The workspace folder.
+   */
   async getFilesForFolder(folder: vscode.WorkspaceFolder): Promise<vscode.TreeItem[]> {
     try {
       const result = await this.getOrScan(folder);
@@ -132,6 +157,10 @@ class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem
     }
   }
 
+  /**
+   * Gets or scans for ignored files in a folder, with caching and abort support.
+   * @param folder The workspace folder.
+   */
   private async getOrScan(folder: vscode.WorkspaceFolder): Promise<ListResult> {
     const key = folder.uri.fsPath;
     if (this.cache.has(key)) return this.cache.get(key) as ListResult;
@@ -155,13 +184,24 @@ class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.TreeItem
     return result;
   }
 
+  /**
+   * Gets the children for a directory within a workspace folder.
+   * @param folder The workspace folder.
+   * @param dirPath The relative directory path.
+   */
   private async getChildrenForDirectory(folder: vscode.WorkspaceFolder, dirPath: string): Promise<vscode.TreeItem[]> {
     const result = await this.getOrScan(folder);
     return buildChildrenForDir(folder, result.files, dirPath);
   }
 }
 
+/**
+ * Tree item for displaying a message.
+ */
 class MessageItem extends vscode.TreeItem {
+  /**
+   * @param message The message to display.
+   */
   constructor(message: string) {
     super(message, vscode.TreeItemCollapsibleState.None);
     this.contextValue = 'message';
@@ -169,7 +209,13 @@ class MessageItem extends vscode.TreeItem {
   }
 }
 
+/**
+ * Tree item representing a workspace folder.
+ */
 class FolderItem extends vscode.TreeItem {
+  /**
+   * @param folder The workspace folder.
+   */
   constructor(public readonly folder: vscode.WorkspaceFolder) {
     super(folder.name, vscode.TreeItemCollapsibleState.Collapsed);
     this.contextValue = 'folder';
@@ -177,7 +223,14 @@ class FolderItem extends vscode.TreeItem {
   }
 }
 
+/**
+ * Tree item representing a directory.
+ */
 class DirectoryItem extends vscode.TreeItem {
+  /**
+   * @param folder The workspace folder.
+   * @param dirPath The relative directory path.
+   */
   constructor(public readonly folder: vscode.WorkspaceFolder, public readonly dirPath: string) {
     super(dirPath.split(/[\\/]/).pop() || dirPath, vscode.TreeItemCollapsibleState.Collapsed);
     this.contextValue = 'dir';
@@ -186,7 +239,14 @@ class DirectoryItem extends vscode.TreeItem {
   }
 }
 
+/**
+ * Tree item representing a file.
+ */
 class FileItem extends vscode.TreeItem {
+  /**
+   * @param folder The workspace folder.
+   * @param relativePath The file's relative path.
+   */
   constructor(public readonly folder: vscode.WorkspaceFolder, public readonly relativePath: string) {
     super(relativePath.split(/[\\/]/).pop() || relativePath, vscode.TreeItemCollapsibleState.None);
     this.contextValue = 'file';
@@ -202,7 +262,10 @@ class FileItem extends vscode.TreeItem {
 
 type FileOrDirItem = FileItem | DirectoryItem | FolderItem;
 
-
+/**
+ * Opens a file in the appropriate VS Code editor.
+ * @param item The file item to open.
+ */
 async function openFile(item: FileItem) {
   try {
     // Use the generic open command so VS Code picks the right editor
@@ -230,11 +293,19 @@ async function openFile(item: FileItem) {
   }
 }
 
+/**
+ * Reveals a file or directory in the VS Code explorer.
+ * @param item The file or directory item.
+ */
 async function revealFile(item: FileOrDirItem) {
   if (!item.resourceUri) return;
   await vscode.commands.executeCommand('revealInExplorer', item.resourceUri);
 }
 
+/**
+ * Copies the file or directory path to the clipboard.
+ * @param item The file or directory item.
+ */
 async function copyPath(item: FileOrDirItem) {
   const fsPath = item.resourceUri?.fsPath;
   if (fsPath) {
@@ -243,6 +314,10 @@ async function copyPath(item: FileOrDirItem) {
   }
 }
 
+/**
+ * Ensures the workspace is trusted before performing write actions.
+ * @returns True if trusted, false otherwise.
+ */
 async function ensureTrustedForWrite(): Promise<boolean> {
   const trustEnabled = vscode.workspace.getConfiguration('security').get<boolean>('workspace.trust.enabled');
   if (trustEnabled && vscode.workspace.isTrusted === false) {
@@ -252,6 +327,10 @@ async function ensureTrustedForWrite(): Promise<boolean> {
   return true;
 }
 
+/**
+ * Gets the maximum number of items to display, clamped to sane bounds.
+ * @returns The maximum number of items.
+ */
 function getMaxItems(): number {
   const cfg = vscode.workspace.getConfiguration('ignored');
   // Read contributed default via inspect when available (single source of truth).
@@ -264,6 +343,13 @@ function getMaxItems(): number {
   return Math.floor(n);
 }
 
+/**
+ * Builds tree items for a directory, including subdirectories and files.
+ * @param folder The workspace folder.
+ * @param allFiles All ignored file paths.
+ * @param dirPath The relative directory path (optional).
+ * @returns Array of tree items for the directory.
+ */
 function buildChildrenForDir(
   folder: vscode.WorkspaceFolder,
   allFiles: string[],
@@ -295,6 +381,12 @@ function buildChildrenForDir(
 
   return [...dirItems, ...fileItems];
 }
+
+/**
+ * Deletes a file or directory, moving it to the OS trash.
+ * @param item The file or directory item to delete.
+ * @param provider The tree data provider (for refresh).
+ */
 async function deleteResource(item: FileOrDirItem, provider: IgnoredTreeDataProvider) {
   const uri = item.resourceUri;
   if (!uri) return;

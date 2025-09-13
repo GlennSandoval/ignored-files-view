@@ -1,6 +1,10 @@
 import { spawn } from 'node:child_process';
 
-
+/**
+ * Parses the output of `git ls-files -z` into a sorted array of file paths.
+ * @param stdout - The raw stdout string from Git, NUL-delimited.
+ * @returns Sorted array of file paths.
+ */
 export function parseGitZOutput(stdout: string): string[] {
   return stdout
     .split('\u0000')
@@ -17,6 +21,10 @@ type CacheEntry = {
 const CACHE = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 10_000; // conservative default; provider refresh clears this anyway
 
+/**
+ * Clears the ignored files list cache.
+ * @param cwd - Optional working directory to clear cache for; clears all if omitted.
+ */
 export function clearIgnoredListCache(cwd?: string) {
   if (cwd) {
     CACHE.delete(cwd);
@@ -25,11 +33,25 @@ export function clearIgnoredListCache(cwd?: string) {
   }
 }
 
+/**
+ * Result of listing ignored files.
+ */
 export type ListResult = {
+  /** List of ignored file paths. */
   files: string[];
+  /** True if the result was truncated due to maxItems. */
   truncated: boolean;
 };
 
+/**
+ * Lists ignored files in a Git repository using `git ls-files`.
+ * Results are cached for a short period.
+ * @param cwd - The working directory (Git repo root).
+ * @param maxItems - Maximum number of files to return.
+ * @param signal - Optional AbortSignal to cancel the operation.
+ * @returns Promise resolving to a ListResult.
+ * @throws If not a Git repository or Git is unavailable.
+ */
 export async function listIgnoredFiles(
   cwd: string,
   maxItems: number,
