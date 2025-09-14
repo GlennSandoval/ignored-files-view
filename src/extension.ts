@@ -345,29 +345,18 @@ async function ensureTrustedForWrite(): Promise<boolean> {
 }
 
 /**
- * Extends WorkspaceConfiguration to include the inspect method for type safety.
- */
-type WorkspaceConfigurationWithInspect = vscode.WorkspaceConfiguration & {
-  inspect?: (section: string) => { defaultValue?: number } | undefined;
-};
-
-/**
  * Gets the maximum number of items to display, clamped to sane bounds.
  * @returns The maximum number of items.
  */
 function getMaxItems(): number {
   const cfg = vscode.workspace.getConfiguration("ignored");
-  // Read contributed default via inspect when available (single source of truth).
-  const inspected = (cfg as WorkspaceConfigurationWithInspect).inspect?.("maxItems") as
-    | { defaultValue?: number }
-    | undefined;
-  const contributedDefault =
+  const inspected = cfg.inspect("maxItems");
+  const effectiveDefault =
     typeof inspected?.defaultValue === "number" ? inspected.defaultValue : MAX_ITEMS_FALLBACK;
-  let n = cfg.get<number>("maxItems", contributedDefault);
+  let maxItemsCount = cfg.get<number>("maxItems", effectiveDefault);
   // Clamp to sane bounds
-  if (!Number.isFinite(n) || n <= 0) n = contributedDefault;
-  if (n > MAX_ITEMS_FALLBACK) n = MAX_ITEMS_FALLBACK;
-  return Math.floor(n);
+  if (!Number.isFinite(maxItemsCount) || maxItemsCount <= 0) maxItemsCount = effectiveDefault;
+  return Math.floor(maxItemsCount);
 }
 
 /**
