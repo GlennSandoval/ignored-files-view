@@ -8,6 +8,7 @@
     "type": "git",
     "url": "https://github.com/GlennSandoval/ignored-files-view"
   },
+  "icon": "assets/icons/view-ignored-files.png",
   "license": "MIT",
   "engines": {
     "vscode": "^1.84.0"
