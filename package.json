@@ -50,6 +50,10 @@
         {
           "command": "show-ignored.copyPath",
           "when": "false"
+        },
+        {
+          "command": "show-ignored.explain",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -71,9 +75,14 @@
           "group": "inline@2"
         },
         {
+          "command": "show-ignored.explain",
+          "when": "view == ignoredFilesView && viewItem == file",
+          "group": "inline@3"
+        },
+        {
           "command": "show-ignored.delete",
           "when": "view == ignoredFilesView && (viewItem == file || viewItem == dir)",
-          "group": "inline@3"
+          "group": "inline@4"
         }
       ]
     },
@@ -92,6 +101,11 @@
         "command": "show-ignored.copyPath",
         "title": "Copy Path",
         "icon": "$(clippy)"
+      },
+      {
+        "command": "show-ignored.explain",
+        "title": "Show Ignore Rule",
+        "icon": "$(question)"
       },
       {
         "command": "show-ignored.delete",

@@ -5,8 +5,9 @@
  * Supports opening, revealing, copying, and deleting ignored files, with caching and trust checks.
  * Main logic: IgnoredTreeDataProvider, command registration, and file operations.
  */
-import { basename } from "node:path";
+import { basename, isAbsolute, join } from "node:path";
 import * as vscode from "vscode";
+import { checkIgnoreVerbose } from "./git";
 import {
   DirectoryItem,
   type FileItem,
@@ -42,6 +43,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("show-ignored.refresh", () => provider.refresh()),
     vscode.commands.registerCommand("show-ignored.open", requireItem(openFile)),
     vscode.commands.registerCommand("show-ignored.copyPath", requireItem(copyPath)),
+    vscode.commands.registerCommand("show-ignored.explain", explainIgnoreRule),
     vscode.commands.registerCommand(
       "show-ignored.delete",
       requireItem(async (item: FileOrDirItem) => {
@@ -110,6 +112,49 @@ async function copyPath(item: FileOrDirItem): Promise<void> {
   if (fsPath) {
     await vscode.env.clipboard.writeText(fsPath);
     vscode.window.showInformationMessage("Path copied to clipboard");
+  }
+}
+
+/**
+ * Explains which ignore rule (if any) is covering the selected or active file.
+ * - When invoked from the Ignored Files view, the item is provided.
+ * - When invoked without a selection, uses the active editor document.
+ */
+async function explainIgnoreRule(item?: FileOrDirItem): Promise<void> {
+  try {
+    // Determine target URI and workspace folder
+    let uri: vscode.Uri | undefined = item?.resourceUri;
+    if (!uri) {
+      const ed = vscode.window.activeTextEditor;
+      if (ed?.document?.uri?.scheme === "file") uri = ed.document.uri;
+    }
+    if (!uri) {
+      vscode.window.showInformationMessage("No file selected or active to explain.");
+      return;
+    }
+    const folder = vscode.workspace.getWorkspaceFolder(uri);
+    if (!folder) {
+      vscode.window.showWarningMessage("File is not inside an open workspace folder.");
+      return;
+    }
+
+    const relPath = uri.fsPath.slice(folder.uri.fsPath.length + 1);
+    const res = await checkIgnoreVerbose(folder.uri.fsPath, relPath);
+    if (!res) {
+      vscode.window.showInformationMessage("This file is not ignored by Git.");
+      return;
+    }
+
+    const abs = isAbsolute(res.source) ? res.source : join(folder.uri.fsPath, res.source);
+    const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(abs));
+    const editor = await vscode.window.showTextDocument(doc, { preview: true });
+    const zeroBased = Math.max(0, (res.line || 1) - 1);
+    const pos = new vscode.Position(zeroBased, 0);
+    editor.selection = new vscode.Selection(pos, pos);
+    editor.revealRange(new vscode.Range(pos, pos), vscode.TextEditorRevealType.InCenter);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    vscode.window.showErrorMessage(`Failed to explain ignore rule: ${msg}`);
   }
 }
 

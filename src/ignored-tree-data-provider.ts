@@ -27,7 +27,7 @@ export class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.T
   private folderCache = new Map<string, ListResult>();
   private scanControllers = new Map<string, AbortController>();
   private refreshTimer: ReturnType<typeof setTimeout> | undefined;
-  
+
   /**
    * Refreshes the tree by clearing caches and notifying listeners.
    * Aborts any in-flight scans and debounces the UI update.
@@ -48,7 +48,7 @@ export class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.T
       this._onDidChangeTreeDataEmitter.fire(undefined);
     }, 200);
   }
-  
+
   /**
    * Returns the given element. Required by the TreeDataProvider API.
    * @param element The tree item element.
@@ -57,7 +57,7 @@ export class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.T
   getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
     return element;
   }
-  
+
   /**
    * Provides children for the given element or root.
    * - At root: shows either a single folder's files or a list of folders
@@ -97,7 +97,7 @@ export class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.T
 
     return [];
   }
-  
+
   /**
    * Gets ignored items for a specific workspace folder.
    * @param folder The workspace folder.
@@ -123,7 +123,7 @@ export class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.T
       return [new MessageItem(msg)];
     }
   }
-  
+
   /**
    * Returns cached scan results or performs a new scan for a folder.
    * Handles cancelation of previous scans and stores results in-memory.
@@ -152,7 +152,7 @@ export class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.T
     this.folderCache.set(folderPath, result);
     return result;
   }
-  
+
   /**
    * Gets the children for a subdirectory within a folder from cached results.
    * @param folder The workspace folder.
@@ -230,7 +230,7 @@ export type FileOrDirItem = FileItem | DirectoryItem | FolderItem;
  */
 function getMaxItems(): number {
   const cfg = vscode.workspace.getConfiguration("ignored");
-  const inspected = cfg.inspect("maxItems");
+  const inspected = cfg.inspect?.("maxItems");
   const effectiveDefault =
     typeof inspected?.defaultValue === "number" ? inspected.defaultValue : MAX_ITEMS_FALLBACK;
   let maxItemsCount = cfg.get<number>("maxItems", effectiveDefault);

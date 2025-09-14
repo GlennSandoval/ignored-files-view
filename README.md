@@ -7,6 +7,7 @@ A Visual Studio Code extension that provides a tree view listing all files ignor
 - Explorer view: "Ignored Files" (`ignoredFilesView`).
 - Single- and multi-root workspace support.
 - Copy full path; delete file (to OS trash).
+- Show ignore rule: reveal which `.gitignore` pattern and line ignores a file.
 - Manual refresh; respects Workspace Trust.
 - Efficient scanning with result capping via a setting.
 

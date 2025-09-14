@@ -38,6 +38,18 @@ export type ListResult = {
   truncated: boolean;
 };
 
+/** Details about which ignore rule matched a path. */
+export type CheckIgnoreResult = {
+  /** Source ignore file path (e.g., .gitignore), as reported by Git. */
+  source: string;
+  /** 1-based line number in the source file. */
+  line: number;
+  /** The pattern that matched (verbatim from Git). */
+  pattern: string;
+  /** The path that was checked (echoed by Git). */
+  path: string;
+};
+
 /**
  * Lists ignored files in a Git repository using `git ls-files`.
  * Results are cached for a short period.
@@ -170,4 +182,62 @@ export async function listIgnoredFiles(
 
   CACHE.set(key, { expires: now + CACHE_TTL_MS, inflight: promise });
   return promise;
+}
+
+/**
+ * Returns the ignore rule responsible for ignoring a given path using `git check-ignore -v`.
+ * @param cwd Repository root directory to run Git in.
+ * @param relPath Path to check, relative to {@link cwd}.
+ * @returns Details of the matching rule, or null if not ignored.
+ */
+export async function checkIgnoreVerbose(
+  cwd: string,
+  relPath: string,
+): Promise<CheckIgnoreResult | null> {
+  const args = ["check-ignore", "-v", "--", relPath];
+  return new Promise<CheckIgnoreResult | null>((resolve, reject) => {
+    const child = spawn("git", args, { cwd, windowsHide: true });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (c: Buffer) => {
+      stdout += c.toString("utf8");
+    });
+    child.stderr.on("data", (c: Buffer) => {
+      stderr += c.toString("utf8");
+    });
+    child.on("error", reject);
+    child.on("close", (_code) => {
+      // If not ignored, Git prints nothing and exits with code 1.
+      const line = stdout.split(/\r?\n/).find((l) => l.trim().length > 0);
+      if (!line) {
+        return resolve(null);
+      }
+      try {
+        // Typical format: "<source>:<lineno>: <pattern>\t<path>"
+        // Be resilient to tabs or spaces between pattern and path.
+        const tabIdx = line.indexOf("\t");
+        const before = tabIdx >= 0 ? line.slice(0, tabIdx) : line;
+        const after = tabIdx >= 0 ? line.slice(tabIdx + 1) : "";
+
+        // Split before into "<source>:<lineno>:<pattern>" (Git may omit the space before pattern)
+        const firstCol = before.indexOf(":");
+        const secondCol = firstCol >= 0 ? before.indexOf(":", firstCol + 1) : -1;
+        const source = firstCol >= 0 ? before.slice(0, firstCol) : before;
+        const lineStr = secondCol >= 0 ? before.slice(firstCol + 1, secondCol) : "";
+        const pattern = secondCol >= 0 ? before.slice(secondCol + 1).trimStart() : "";
+        const lineNum = Number.parseInt(lineStr.trim(), 10);
+        const path = after || relPath;
+
+        resolve({ source, line: Number.isFinite(lineNum) ? lineNum : 0, pattern, path });
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }).catch((e) => {
+    const msg = String((e as Error)?.message || e);
+    if (/Not a git repository|fatal/i.test(msg)) {
+      throw new Error("Not a Git repository or Git unavailable");
+    }
+    throw e;
+  });
 }
