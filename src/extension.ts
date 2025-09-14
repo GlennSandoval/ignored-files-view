@@ -10,6 +10,7 @@ import * as vscode from "vscode";
 import { type ListResult, clearIgnoredListCache, listIgnoredFiles } from "./git";
 
 const MAX_ITEMS_FALLBACK = 2000;
+const MAX_ITEMS_UPPER_BOUND = 20000;
 
 /**
  * Activates the extension and registers commands and tree provider.
@@ -31,10 +32,11 @@ export function activate(context: vscode.ExtensionContext): void {
   }
 
   context.subscriptions.push(
-    vscode.window.registerTreeDataProvider("ignoredFilesView", provider),
+    vscode.window.createTreeView("ignoredFilesView", {
+      treeDataProvider: provider,
+    }),
     vscode.commands.registerCommand("show-ignored.refresh", () => provider.refresh()),
     vscode.commands.registerCommand("show-ignored.open", requireItem(openFile)),
-    vscode.commands.registerCommand("show-ignored.reveal", requireItem(revealFile)),
     vscode.commands.registerCommand("show-ignored.copyPath", requireItem(copyPath)),
     vscode.commands.registerCommand(
       "show-ignored.delete",
@@ -43,12 +45,6 @@ export function activate(context: vscode.ExtensionContext): void {
         await deleteResource(item, provider);
       }),
     ),
-    vscode.commands.registerCommand("show-ignored.unignore", async (item?: FileItem) => {
-      if (!(await ensureTrustedForWrite())) return;
-      await requireItem(async () => {
-        vscode.window.showInformationMessage("Unignore action is not implemented yet.");
-      })(item as FileItem);
-    }),
   );
 
   // Apply updated settings immediately (e.g., ignored.maxItems)
@@ -277,11 +273,6 @@ class FileItem extends vscode.TreeItem {
     super(relativePath.split(/[\\/]/).pop() || relativePath, vscode.TreeItemCollapsibleState.None);
     this.contextValue = "file";
     this.resourceUri = vscode.Uri.file(join(folder.uri.fsPath, relativePath));
-    this.command = {
-      command: "show-ignored.open",
-      title: "Open File",
-      arguments: [this],
-    };
     this.iconPath = vscode.ThemeIcon.File;
   }
 }
@@ -323,15 +314,6 @@ async function openFile(item: FileItem): Promise<void> {
 }
 
 /**
- * Reveals a file or directory in the VS Code explorer.
- * @param item The file or directory item.
- */
-async function revealFile(item: FileOrDirItem): Promise<void> {
-  if (!item.resourceUri) return;
-  await vscode.commands.executeCommand("revealInExplorer", item.resourceUri);
-}
-
-/**
  * Copies the file or directory path to the clipboard.
  * @param item The file or directory item.
  */
@@ -370,6 +352,7 @@ function getMaxItems(): number {
   let maxItemsCount = cfg.get<number>("maxItems", effectiveDefault);
   // Clamp to sane bounds
   if (!Number.isFinite(maxItemsCount) || maxItemsCount <= 0) maxItemsCount = effectiveDefault;
+  maxItemsCount = Math.min(maxItemsCount, MAX_ITEMS_UPPER_BOUND);
   return Math.floor(maxItemsCount);
 }
 

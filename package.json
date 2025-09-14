@@ -16,12 +16,6 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
-    "submenus": [
-      {
-        "id": "show-ignored.actions",
-        "label": "Ignored Actions"
-      }
-    ],
     "configuration": {
       "title": "Ignored Files View",
       "properties": {
@@ -39,17 +33,30 @@
           "id": "ignoredFilesView",
           "name": "Ignored Files",
           "contextualTitle": "Ignored Files",
-          "icon": "$(folder-ignored)"
+          "icon": "$(eye-closed)"
         }
       ]
     },
     "menus": {
+      "commandPalette": [
+        {
+          "command": "show-ignored.delete",
+          "when": "false"
+        },
+        {
+          "command": "show-ignored.open",
+          "when": "false"
+        },
+        {
+          "command": "show-ignored.copyPath",
+          "when": "false"
+        }
+      ],
       "view/title": [
         {
           "command": "show-ignored.refresh",
           "when": "view == ignoredFilesView",
-          "group": "navigation",
-          "icon": "$(refresh)"
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -59,59 +66,37 @@
           "group": "inline@1"
         },
         {
-          "submenu": "show-ignored.actions",
-          "when": "view == ignoredFilesView && (viewItem == file || viewItem == dir || viewItem == folder)",
-          "group": "navigation@99"
-        }
-      ],
-      "show-ignored.actions": [
-        {
-          "command": "show-ignored.open",
-          "when": "view == ignoredFilesView && viewItem == file",
-          "group": "1_open"
-        },
-        {
-          "command": "show-ignored.reveal",
-          "when": "view == ignoredFilesView && (viewItem == file || viewItem == dir || viewItem == folder)",
-          "group": "2_navigate"
-        },
-        {
           "command": "show-ignored.copyPath",
-          "when": "view == ignoredFilesView && (viewItem == file || viewItem == dir || viewItem == folder)",
-          "group": "3_clipboard"
+          "when": "view == ignoredFilesView && (viewItem == file || viewItem == dir)",
+          "group": "inline@2"
         },
         {
           "command": "show-ignored.delete",
           "when": "view == ignoredFilesView && (viewItem == file || viewItem == dir)",
-          "group": "4_modify",
-          "icon": "$(trash)"
+          "group": "inline@3"
         }
       ]
     },
     "commands": [
       {
         "command": "show-ignored.refresh",
-        "title": "Ignored Files: Refresh"
+        "title": "Ignored Files View: Refresh",
+        "icon": "$(refresh)"
       },
       {
         "command": "show-ignored.open",
-        "title": "Ignored Files: Open"
-      },
-      {
-        "command": "show-ignored.reveal",
-        "title": "Ignored Files: Reveal in Explorer"
+        "title": "Open File",
+        "icon": "$(go-to-file)"
       },
       {
         "command": "show-ignored.copyPath",
-        "title": "Ignored Files: Copy Path"
+        "title": "Copy Path",
+        "icon": "$(clippy)"
       },
       {
         "command": "show-ignored.delete",
-        "title": "Ignored Files: Delete"
-      },
-      {
-        "command": "show-ignored.unignore",
-        "title": "Ignored Files: Unignore (stub)"
+        "title": "Delete",
+        "icon": "$(trash)"
       }
     ]
   },

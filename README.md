@@ -6,7 +6,6 @@ A Visual Studio Code extension that provides a tree view listing all files ignor
 
 - Explorer view: "Ignored Files" (`ignoredFilesView`).
 - Single- and multi-root workspace support.
-- Click to open file; reveal in Explorer.
 - Copy full path; delete file (to OS trash).
 - Manual refresh; respects Workspace Trust.
 - Efficient scanning with result capping via a setting.
@@ -14,11 +13,6 @@ A Visual Studio Code extension that provides a tree view listing all files ignor
 ## Commands
 
 - `Ignored Files: Refresh` (`show-ignored.refresh`)
-- `Ignored Files: Open` (`show-ignored.open`)
-- `Ignored Files: Reveal in Explorer` (`show-ignored.reveal`)
-- `Ignored Files: Copy Path` (`show-ignored.copyPath`)
-- `Ignored Files: Delete` (`show-ignored.delete`)
-- `Ignored Files: Unignore (stub)` (`show-ignored.unignore`)
 
 ## Settings
 
