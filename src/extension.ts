@@ -17,6 +17,7 @@ const MAX_ITEMS_FALLBACK = 2000;
  */
 export function activate(context: vscode.ExtensionContext): void {
   const provider = new IgnoredTreeDataProvider();
+  let configChangeRefreshTimer: ReturnType<typeof setTimeout> | undefined;
 
   // Helper to require an item, otherwise show info message
   function requireItem<T>(cb: (item: T) => Promise<void>): (item?: T) => Promise<void> {
@@ -47,6 +48,19 @@ export function activate(context: vscode.ExtensionContext): void {
       await requireItem(async () => {
         vscode.window.showInformationMessage("Unignore action is not implemented yet.");
       })(item as FileItem);
+    }),
+  );
+
+  // Apply updated settings immediately (e.g., ignored.maxItems)
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("ignored.maxItems")) {
+        if (configChangeRefreshTimer) clearTimeout(configChangeRefreshTimer);
+        configChangeRefreshTimer = setTimeout(() => {
+          configChangeRefreshTimer = undefined;
+          provider.refresh();
+        }, 1500);
+      }
     }),
   );
 }
