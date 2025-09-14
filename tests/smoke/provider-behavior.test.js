@@ -39,7 +39,7 @@ function withMocks(run) {
     static Folder = new ThemeIcon("folder");
   }
 
-  const config = { ignoredMaxItems: 2000, trustEnabled: true };
+  const config = { ignoredMaxItems: 2000, trustEnabled: true, excludeFolders: ["node_modules"] };
   const registered = { providers: {}, commands: {} };
   const workspace = {
     workspaceFolders: [],
@@ -49,7 +49,14 @@ function withMocks(run) {
         return { get: (k) => (k === "workspace.trust.enabled" ? config.trustEnabled : undefined) };
       }
       if (section === "ignored") {
-        return { get: (k, d) => (k === "maxItems" ? config.ignoredMaxItems : d) };
+        return {
+          get: (k, d) =>
+            k === "maxItems"
+              ? config.ignoredMaxItems
+              : k === "excludeFolders"
+                ? config.excludeFolders
+                : d,
+        };
       }
       return { get: () => undefined };
     },
@@ -186,6 +193,37 @@ withMocks(({ registered, vscode, config, gitStub }) => {
       .then((items3) => {
         assert(items3.length === 1, "one message item when untrusted");
         assert(/untrusted/.test(String(items3[0].label)), "message mentions untrusted");
+      })
+      // 6) Exclude node_modules by default; include when configured
+      .then(() => {
+        // Restore trust and set a result with node_modules entries
+        vscode.workspace.isTrusted = true;
+        config.excludeFolders = ["node_modules"];
+        gitStub._result = {
+          files: [
+            "node_modules/pkg/index.js",
+            "packages/a/node_modules/foo.js",
+            "dir1/file1",
+            "a.txt",
+          ],
+          truncated: false,
+        };
+        provider.refresh();
+      })
+      .then(() => provider.getChildren())
+      .then((items4) => {
+        // With includeNodeModules=false, only dir1 and a.txt should appear
+        assertLabelSeq(items4, ["dir1", "a.txt"]);
+      })
+      .then(() => {
+        // Now include node_modules by clearing exclusions and verify directories appear
+        config.excludeFolders = [];
+        provider.refresh();
+      })
+      .then(() => provider.getChildren())
+      .then((items5) => {
+        // Expect: dir1, node_modules, packages, a.txt (dirs sorted, then files)
+        assertLabelSeq(items5, ["dir1", "node_modules", "packages", "a.txt"]);
       })
   );
 });

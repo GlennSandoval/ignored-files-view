@@ -106,11 +106,12 @@ export class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.T
   async getFilesForFolder(folder: vscode.WorkspaceFolder): Promise<vscode.TreeItem[]> {
     try {
       const result = await this.getOrScan(folder);
-      if (!result.files.length) {
+      const files = filterByExcludedFolders(result.files);
+      if (!files.length) {
         return [new MessageItem("No ignored files")];
       }
       const maxItems = getMaxItems();
-      const items = buildChildrenForDir(folder, result.files);
+      const items = buildChildrenForDir(folder, files);
       if (result.truncated) {
         const note = new MessageItem(
           `Showing first ${maxItems} ignored files (capped by setting ignored.maxItems)`,
@@ -164,7 +165,8 @@ export class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.T
     dirPath: string,
   ): Promise<vscode.TreeItem[]> {
     const result = await this.getOrScan(folder);
-    return buildChildrenForDir(folder, result.files, dirPath);
+    const files = filterByExcludedFolders(result.files);
+    return buildChildrenForDir(folder, files, dirPath);
   }
 }
 
@@ -237,6 +239,46 @@ function getMaxItems(): number {
   if (!Number.isFinite(maxItemsCount) || maxItemsCount <= 0) maxItemsCount = effectiveDefault;
   maxItemsCount = Math.min(maxItemsCount, MAX_ITEMS_UPPER_BOUND);
   return Math.floor(maxItemsCount);
+}
+
+/**
+ * Returns whether items under any `node_modules` directory should be included.
+ * Defaults to false to avoid overwhelming the list with third-party files.
+ */
+function getExcludedFolders(): string[] {
+  const cfg = vscode.workspace.getConfiguration("ignored");
+  const val = cfg.get<unknown>("excludeFolders", ["node_modules"]);
+  if (!Array.isArray(val)) return ["node_modules"];
+  const out: string[] = [];
+  for (const v of val) {
+    if (typeof v !== "string") continue;
+    const s = v.trim().replace(/^[\\/]+|[\\/]+$/g, "");
+    if (s && !out.includes(s)) out.push(s);
+  }
+  return out.length ? out : ["node_modules"];
+}
+
+/**
+ * Applies the excluded folders preference to a list of paths.
+ * @param files Relative file paths from the repo root using POSIX separators.
+ */
+function filterByExcludedFolders(files: string[]): string[] {
+  const folders = getExcludedFolders();
+  if (!folders.length) return files;
+  const res: string[] = [];
+  for (const p of files) {
+    let excluded = false;
+    for (const f of folders) {
+      // match folder segment anywhere in the path
+      const re = new RegExp(`(^|/)${f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:/|$)`);
+      if (re.test(p)) {
+        excluded = true;
+        break;
+      }
+    }
+    if (!excluded) res.push(p);
+  }
+  return res;
 }
 
 /**

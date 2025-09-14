@@ -56,7 +56,10 @@ export function activate(context: vscode.ExtensionContext): void {
   // Apply updated settings immediately (e.g., ignored.maxItems)
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("ignored.maxItems")) {
+      if (
+        e.affectsConfiguration("ignored.maxItems") ||
+        e.affectsConfiguration("ignored.excludeFolders")
+      ) {
         if (configChangeRefreshTimer) clearTimeout(configChangeRefreshTimer);
         configChangeRefreshTimer = setTimeout(() => {
           configChangeRefreshTimer = undefined;
