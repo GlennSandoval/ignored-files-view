@@ -50,7 +50,7 @@ function withMocks(run) {
           get: (k) => (k === "workspace.trust.enabled" ? behavior.trustEnabled : undefined),
         };
       }
-      if (section === "ignored") {
+      if (section === "ignoredFilesView") {
         return { get: (_k, d) => d, inspect: () => ({ defaultValue: 2000 }) };
       }
       return { get: () => undefined };

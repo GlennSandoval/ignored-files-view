@@ -19,16 +19,20 @@
     "configuration": {
       "title": "Ignored Files View",
       "properties": {
-        "ignored.maxItems": {
+        "ignoredFilesView.maxItems": {
           "type": "number",
           "default": 6000,
           "minimum": 100,
           "markdownDescription": "Maximum number of ignored files to collect and display. Capping protects performance and memory on very large repositories. Increase with care."
         },
-        "ignored.excludeFolders": {
+        "ignoredFilesView.excludeFolders": {
           "type": "array",
-          "items": { "type": "string" },
-          "default": ["node_modules"],
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "node_modules"
+          ],
           "markdownDescription": "Folder names to exclude from the Ignored Files view. Matches any path segment (e.g., 'node_modules', 'build')."
         }
       }
@@ -66,7 +70,12 @@
         {
           "command": "show-ignored.refresh",
           "when": "view == ignoredFilesView",
-          "group": "navigation"
+          "group": "navigation@1"
+        },
+        {
+          "command": "show-ignored.openSettings",
+          "when": "view == ignoredFilesView",
+          "group": "navigation@2"
         }
       ],
       "view/item/context": [
@@ -97,6 +106,11 @@
         "command": "show-ignored.refresh",
         "title": "Ignored Files View: Refresh",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "show-ignored.openSettings",
+        "title": "Ignored Files View: Settings",
+        "icon": "$(gear)"
       },
       {
         "command": "show-ignored.open",

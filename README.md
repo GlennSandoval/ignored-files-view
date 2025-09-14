@@ -17,8 +17,8 @@ A Visual Studio Code extension that provides a tree view listing all files ignor
 
 ## Settings
 
-- `ignored.maxItems` (number, default: 2000): Maximum number of ignored files to collect and display. Capped to protect performance on very large repos. Values are clamped to a safe range.
- - `ignored.excludeFolders` (string[], default: ["node_modules"]): Folder names to exclude from the Ignored Files view. Matches any path segment. Remove `node_modules` from this list to include it.
+- `ignoredFilesView.maxItems` (number, default: 2000): Maximum number of ignored files to collect and display. Capped to protect performance on very large repos. Values are clamped to a safe range.
+ - `ignoredFilesView.excludeFolders` (string[], default: ["node_modules"]): Folder names to exclude from the Ignored Files view. Matches any path segment. Remove `node_modules` from this list to include it.
 
 ## Requirements
 

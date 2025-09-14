@@ -48,7 +48,7 @@ function withMocks(run) {
       if (section === "security") {
         return { get: (k) => (k === "workspace.trust.enabled" ? config.trustEnabled : undefined) };
       }
-      if (section === "ignored") {
+      if (section === "ignoredFilesView") {
         return {
           get: (k, d) =>
             k === "maxItems"

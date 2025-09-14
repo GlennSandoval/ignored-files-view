@@ -114,7 +114,7 @@ export class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.T
       const items = buildChildrenForDir(folder, files);
       if (result.truncated) {
         const note = new MessageItem(
-          `Showing first ${maxItems} ignored files (capped by setting ignored.maxItems)`,
+          `Showing first ${maxItems} ignored files (capped by setting ignoredFilesView.maxItems)`,
         );
         return [note, ...items];
       }
@@ -231,7 +231,7 @@ export type FileOrDirItem = FileItem | DirectoryItem | FolderItem;
  * @returns Effective max item count.
  */
 function getMaxItems(): number {
-  const cfg = vscode.workspace.getConfiguration("ignored");
+  const cfg = vscode.workspace.getConfiguration("ignoredFilesView");
   const inspected = cfg.inspect?.("maxItems");
   const effectiveDefault =
     typeof inspected?.defaultValue === "number" ? inspected.defaultValue : MAX_ITEMS_FALLBACK;
@@ -246,16 +246,16 @@ function getMaxItems(): number {
  * Defaults to false to avoid overwhelming the list with third-party files.
  */
 function getExcludedFolders(): string[] {
-  const cfg = vscode.workspace.getConfiguration("ignored");
-  const val = cfg.get<unknown>("excludeFolders", ["node_modules"]);
-  if (!Array.isArray(val)) return ["node_modules"];
+  const cfg = vscode.workspace.getConfiguration("ignoredFilesView");
+  const val = cfg.get<unknown>("excludeFolders", []);
+  if (!Array.isArray(val)) return [];
   const out: string[] = [];
   for (const v of val) {
     if (typeof v !== "string") continue;
     const s = v.trim().replace(/^[\\/]+|[\\/]+$/g, "");
     if (s && !out.includes(s)) out.push(s);
   }
-  return out.length ? out : ["node_modules"];
+  return out.length ? out : [];
 }
 
 /**

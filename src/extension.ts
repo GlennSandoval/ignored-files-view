@@ -40,6 +40,15 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.window.createTreeView("ignoredFilesView", {
       treeDataProvider: provider,
     }),
+    vscode.commands.registerCommand("show-ignored.openSettings", async () => {
+      // Open Settings UI filtered to this extension's settings
+      try {
+        await vscode.commands.executeCommand("workbench.action.openSettings", "ignoredFilesView.");
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        vscode.window.showErrorMessage(`Failed to open settings: ${msg}`);
+      }
+    }),
     vscode.commands.registerCommand("show-ignored.refresh", () => provider.refresh()),
     vscode.commands.registerCommand("show-ignored.open", requireItem(openFile)),
     vscode.commands.registerCommand("show-ignored.copyPath", requireItem(copyPath)),
@@ -53,12 +62,12 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
   );
 
-  // Apply updated settings immediately (e.g., ignored.maxItems)
+  // Apply updated settings immediately (e.g., ignoredFilesView.maxItems)
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (
-        e.affectsConfiguration("ignored.maxItems") ||
-        e.affectsConfiguration("ignored.excludeFolders")
+        e.affectsConfiguration("ignoredFilesView.maxItems") ||
+        e.affectsConfiguration("ignoredFilesView.excludeFolders")
       ) {
         if (configChangeRefreshTimer) clearTimeout(configChangeRefreshTimer);
         configChangeRefreshTimer = setTimeout(() => {
