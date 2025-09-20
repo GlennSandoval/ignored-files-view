@@ -45,3 +45,4 @@ Assumed Node.js workflow; adapt as needed.
 
 ## Agent‑Specific Instructions
 When editing or adding files, follow these conventions and keep changes minimal and focused on the task at hand. If project tooling differs from the Node/TypeScript defaults above, update this file and package scripts accordingly.
+Run `npm run format` and `npm test` before considering your changes complete.
