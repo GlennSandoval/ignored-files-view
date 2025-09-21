@@ -2,7 +2,7 @@
   "name": "ignored-files-view",
   "displayName": "Show Ignored Files",
   "description": "A VS Code extension that shows all files ignored by Git in a dedicated tree view.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "publisher": "glennsandoval",
   "repository": {
     "type": "git",
