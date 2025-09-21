@@ -59,12 +59,28 @@ export type CheckIgnoreResult = {
  * @returns Promise resolving to a ListResult.
  * @throws If not a Git repository or Git is unavailable.
  */
+export type ListIgnoredFilesOptions = {
+  signal?: AbortSignal;
+  /**
+   * Optional inclusion predicate. Return true to include a path in the results.
+   * When provided, the maxItems limit is applied after filtering.
+   */
+  filter?: (path: string) => boolean;
+  /**
+   * Optional cache key suffix to distinguish different filter configurations.
+   */
+  cacheKeySuffix?: string;
+};
+
+const includeAll = () => true;
+
 export async function listIgnoredFiles(
   cwd: string,
   maxItems: number,
-  signal?: AbortSignal,
+  options?: ListIgnoredFilesOptions,
 ): Promise<ListResult> {
-  const key = `${cwd}::${maxItems}`;
+  const cacheKeySuffix = options?.cacheKeySuffix ? `::${options.cacheKeySuffix}` : "";
+  const key = `${cwd}::${maxItems}${cacheKeySuffix}`;
   const now = Date.now();
   const existing = CACHE.get(key);
   if (existing?.value && existing.expires > now) {
@@ -79,6 +95,8 @@ export async function listIgnoredFiles(
     let buffer = Buffer.alloc(0);
     const files: string[] = [];
     let truncated = false;
+    const shouldInclude = options?.filter ?? includeAll;
+    const signal = options?.signal;
 
     const onData = (chunk: Buffer) => {
       // Avoid an extra allocation when we don't have a leftover buffer
@@ -89,17 +107,20 @@ export async function listIgnoredFiles(
         const nul = data.indexOf(0x00, start);
         if (nul === -1) break;
         const piece = data.toString("utf8", start, nul);
-        if (piece) files.push(piece);
-        start = nul + 1;
-        if (files.length >= maxItems) {
-          truncated = true;
-          cleanup();
-          try {
-            child.kill();
-          } catch {}
-          finish();
-          return;
+        if (piece && shouldInclude(piece)) {
+          files.push(piece);
+          if (files.length >= maxItems) {
+            truncated = true;
+            cleanup();
+            start = nul + 1;
+            try {
+              child.kill();
+            } catch {}
+            finish();
+            return;
+          }
         }
+        start = nul + 1;
       }
       // Use Buffer.from to ensure correct type
       buffer = Buffer.from(data.subarray(start));
@@ -114,7 +135,13 @@ export async function listIgnoredFiles(
       // Flush any trailing partial (unlikely with -z, but safe)
       if (buffer.length) {
         const tail = buffer.toString();
-        if (tail) files.push(tail);
+        if (tail && shouldInclude(tail)) {
+          files.push(tail);
+          if (files.length > maxItems) {
+            files.length = maxItems;
+            truncated = true;
+          }
+        }
       }
       finish();
     };

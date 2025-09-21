@@ -102,7 +102,17 @@ function withMocks(run) {
   // Stub for './git' so provider can run without spawning real git
   const gitStub = {
     _result: { files: [], truncated: false },
-    listIgnoredFiles: async () => gitStub._result,
+    listIgnoredFiles: async (_cwd, maxItems, options = {}) => {
+      const filter = options.filter;
+      const source = gitStub._result.files || [];
+      const filtered = filter ? source.filter((p) => filter(p)) : [...source];
+      return {
+        files: filtered.slice(0, maxItems ?? filtered.length),
+        truncated: Boolean(
+          gitStub._result.truncated || filtered.length > (maxItems ?? filtered.length),
+        ),
+      };
+    },
     clearIgnoredListCache: () => {},
   };
 

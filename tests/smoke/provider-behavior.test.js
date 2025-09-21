@@ -101,9 +101,18 @@ function withMocks(run) {
   const gitStub = {
     _result: { files: [], truncated: false },
     _lastMax: undefined,
-    listIgnoredFiles: async (cwd, maxItems) => {
+    listIgnoredFiles: async (_cwd, maxItems, options = {}) => {
       gitStub._lastMax = maxItems;
-      return gitStub._result;
+      const filter = options.filter;
+      const source = gitStub._result.files || [];
+      const filtered = Array.isArray(source)
+        ? filter
+          ? source.filter((p) => filter(p))
+          : [...source]
+        : [];
+      const sliced = filtered.slice(0, maxItems);
+      const truncated = Boolean(gitStub._result.truncated || filtered.length > maxItems);
+      return { files: sliced, truncated };
     },
     clearIgnoredListCache: () => {},
   };

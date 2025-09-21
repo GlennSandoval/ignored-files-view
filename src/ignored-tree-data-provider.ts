@@ -106,7 +106,7 @@ export class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.T
   async getFilesForFolder(folder: vscode.WorkspaceFolder): Promise<vscode.TreeItem[]> {
     try {
       const result = await this.getOrScan(folder);
-      const files = filterByExcludedFolders(result.files);
+      const files = result.files;
       if (!files.length) {
         return [new MessageItem("No ignored files")];
       }
@@ -144,7 +144,14 @@ export class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.T
     this.scanControllers.set(folderPath, abortController);
 
     const maxItems = getMaxItems();
-    const result = await listIgnoredFiles(folderPath, maxItems, abortController.signal);
+    const excludedFolders = getExcludedFolders();
+    const includePredicate = createFolderIncludePredicate(excludedFolders);
+    const cacheKeySuffix = buildExcludedCacheSuffix(excludedFolders);
+    const result = await listIgnoredFiles(folderPath, maxItems, {
+      signal: abortController.signal,
+      filter: includePredicate === includeAllPaths ? undefined : includePredicate,
+      cacheKeySuffix,
+    });
     const currentController = this.scanControllers.get(folderPath);
     if (currentController !== abortController) {
       return this.folderCache.get(folderPath) ?? result;
@@ -165,8 +172,7 @@ export class IgnoredTreeDataProvider implements vscode.TreeDataProvider<vscode.T
     dirPath: string,
   ): Promise<vscode.TreeItem[]> {
     const result = await this.getOrScan(folder);
-    const files = filterByExcludedFolders(result.files);
-    return buildChildrenForDir(folder, files, dirPath);
+    return buildChildrenForDir(folder, result.files, dirPath);
   }
 }
 
@@ -259,29 +265,6 @@ function getExcludedFolders(): string[] {
 }
 
 /**
- * Applies the excluded folders preference to a list of paths.
- * @param files Relative file paths from the repo root using POSIX separators.
- */
-function filterByExcludedFolders(files: string[]): string[] {
-  const folders = getExcludedFolders();
-  if (!folders.length) return files;
-  const res: string[] = [];
-  for (const p of files) {
-    let excluded = false;
-    for (const f of folders) {
-      // match folder segment anywhere in the path
-      const re = new RegExp(`(^|/)${f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:/|$)`);
-      if (re.test(p)) {
-        excluded = true;
-        break;
-      }
-    }
-    if (!excluded) res.push(p);
-  }
-  return res;
-}
-
-/**
  * Builds child items for a directory, grouping results into subdirectories
  * and files, and sorting them case-insensitively for a stable UI.
  * @param folder The workspace folder for which items are built.
@@ -319,4 +302,42 @@ function buildChildrenForDir(
     .map((relativePath) => new FileItem(folder, relativePath));
 
   return [...directoryItems, ...fileItems];
+}
+
+const includeAllPaths = () => true;
+
+/**
+ * Escapes a path segment for use in a regular expression so special characters
+ * are interpreted literally. This ensures ignore folder names map to safe regexes.
+ */
+function escapeRegExp(segment: string): string {
+  return segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Builds a predicate that determines whether an ignored file path should be included
+ * based on the configured excluded folder list. The predicate returns false when the
+ * path belongs to any excluded folder segment.
+ */
+function createFolderIncludePredicate(folders: string[]): (path: string) => boolean {
+  if (!folders.length) return includeAllPaths;
+  const patterns = folders.map((folder) => new RegExp(`(^|/)${escapeRegExp(folder)}(?:/|$)`));
+  return (path: string) => {
+    for (const re of patterns) {
+      if (re.test(path)) return false;
+    }
+    return true;
+  };
+}
+
+/**
+ * Produces a deterministic cache key suffix for the active exclusion list so cached
+ * results stay isolated per configuration. The list is sorted to ensure stable keys.
+ */
+function buildExcludedCacheSuffix(folders: string[]): string | undefined {
+  if (!folders.length) return undefined;
+  const sorted = [...folders].sort((a, b) =>
+    a.localeCompare(b, undefined, { sensitivity: "base" }),
+  );
+  return `exclude=${sorted.join("|")}`;
 }

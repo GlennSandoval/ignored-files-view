@@ -71,7 +71,9 @@ describe("listIgnoredFiles", () => {
     const dir = setupRepoWithIgnoredFiles(2);
     const ctrl = new AbortController();
     ctrl.abort();
-    await expect(listIgnoredFiles(dir, 10, ctrl.signal)).rejects.toThrow(/cancelled|canceled/i);
+    await expect(listIgnoredFiles(dir, 10, { signal: ctrl.signal })).rejects.toThrow(
+      /cancelled|canceled/i,
+    );
   });
 
   itIfGit("caches results for ttl window", async () => {
@@ -89,5 +91,27 @@ describe("listIgnoredFiles", () => {
     const [a, b] = await Promise.all([listIgnoredFiles(dir, 10), listIgnoredFiles(dir, 10)]);
     // Both callers should receive the exact same resolved object instance
     expect(a).toBe(b);
+  });
+
+  itIfGit("applies filter before truncation", async () => {
+    const dir = setupRepoWithIgnoredFiles(1);
+    // add nested folders to exercise filter logic
+    const keepDir = path.join(dir, "keep");
+    const skipDir = path.join(dir, "skip");
+    fs.mkdirSync(keepDir, { recursive: true });
+    fs.mkdirSync(skipDir, { recursive: true });
+    fs.writeFileSync(path.join(keepDir, "one.tmp"), "x");
+    fs.writeFileSync(path.join(keepDir, "two.tmp"), "x");
+    fs.writeFileSync(path.join(keepDir, "three.tmp"), "x");
+    fs.writeFileSync(path.join(skipDir, "hidden.tmp"), "x");
+
+    const res = await listIgnoredFiles(dir, 2, {
+      filter: (relativePath) => !relativePath.startsWith("skip/"),
+      cacheKeySuffix: "skip-filter",
+    });
+
+    expect(res.files.every((p) => !p.startsWith("skip/"))).toBe(true);
+    expect(res.files.length).toBe(2);
+    expect(res.truncated).toBe(true);
   });
 });
