@@ -6,14 +6,9 @@
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
-      "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}",
-        "--disable-extensions"
-      ],
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}", "--disable-extensions"],
       "preLaunchTask": "npm: build",
-      "outFiles": [
-        "${workspaceFolder}/dist/**/*.js"
-      ],
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
       "cwd": "${workspaceFolder}"
     }
   ]

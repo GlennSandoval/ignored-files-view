@@ -1,6 +1,6 @@
-import { defineConfig } from 'vitest/config';
-import { builtinModules } from 'node:module';
-import { resolve } from 'node:path';
+import { defineConfig } from "vitest/config";
+import { builtinModules } from "node:module";
+import { resolve } from "node:path";
 
 // Build the VS Code extension with Vite/Rollup.
 // - Output CommonJS to work with the extension host.
@@ -8,40 +8,37 @@ import { resolve } from 'node:path';
 // - Keep sourcemaps for easier debugging.
 export default defineConfig({
   test: {
-    environment: 'node',
-    include: ['tests/unit/**/*.test.{ts,js}'],
+    environment: "node",
+    include: ["tests/unit/**/*.test.{ts,js}"],
     coverage: {
-      provider: 'v8',
-      reporter: ['text', 'html'],
+      provider: "v8",
+      reporter: ["text", "html"],
     },
   },
   build: {
-    outDir: 'dist',
+    outDir: "dist",
     emptyOutDir: true,
     sourcemap: true,
     minify: false,
-    target: 'node18',
+    target: "node18",
     lib: {
       entry: {
-        extension: resolve(__dirname, 'src/extension.ts'),
-        git: resolve(__dirname, 'src/git.ts'),
+        extension: resolve(__dirname, "src/extension.ts"),
+        git: resolve(__dirname, "src/git.ts"),
       },
-      formats: ['cjs'],
-      fileName: (_format, entryName) => (entryName === 'extension' ? 'extension.js' : `${entryName}.js`),
+      formats: ["cjs"],
+      fileName: (_format, entryName) =>
+        entryName === "extension" ? "extension.js" : `${entryName}.js`,
     },
     rollupOptions: {
-      external: [
-        'vscode',
-        ...builtinModules,
-        ...builtinModules.map((m) => `node:${m}`),
-      ],
+      external: ["vscode", ...builtinModules, ...builtinModules.map((m) => `node:${m}`)],
       output: {
-        exports: 'named',
+        exports: "named",
         manualChunks: undefined,
       },
     },
   },
   esbuild: {
-    platform: 'node',
+    platform: "node",
   },
 });

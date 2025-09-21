@@ -13,12 +13,8 @@
   "engines": {
     "vscode": "^1.84.0"
   },
-  "categories": [
-    "Other"
-  ],
-  "activationEvents": [
-    "workspaceContains:.git"
-  ],
+  "categories": ["Other"],
+  "activationEvents": ["workspaceContains:.git"],
   "main": "./dist/extension.js",
   "contributes": {
     "configuration": {
@@ -35,9 +31,7 @@
           "items": {
             "type": "string"
           },
-          "default": [
-            "node_modules"
-          ],
+          "default": ["node_modules"],
           "markdownDescription": "Folder names to exclude from the Ignored Files view. Matches any path segment (e.g., 'node_modules', 'build')."
         }
       }
