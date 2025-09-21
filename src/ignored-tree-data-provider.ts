@@ -242,8 +242,8 @@ function getMaxItems(): number {
 }
 
 /**
- * Returns whether items under any `node_modules` directory should be included.
- * Defaults to false to avoid overwhelming the list with third-party files.
+ * Reads the `ignoredFilesView.excludeFolders` setting and returns a normalized list.
+ * Ensures folder segments are unique and stripped of surrounding slashes.
  */
 function getExcludedFolders(): string[] {
   const cfg = vscode.workspace.getConfiguration("ignoredFilesView");
